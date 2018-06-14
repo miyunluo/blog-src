@@ -1,0 +1,52 @@
+---
+layout:     post
+title:      "Deep Neural Networks for YouTube Recommendations"
+tags:
+    - Notes
+---
+
+> “2016 youtube 推荐系统”
+
+每天都在用网易云音乐听歌和youtube看视频。这篇论文GG介绍了其使用深度学习在youtube推荐系统的应用。
+
+## Overview
+
+系统的结构比较直观，分为 candidate generation 与 ranking。Candidate generation 负责从海量的数据集中 (百万级)，粗选一部分视频出来，接下来ranking负责对选出的视频 (百级) 进行精细处理，排名。
+
+## Candidate generation
+
+作者将推荐问题视为一个超大分类问题 (extreme multiclass classification)。问题为，在时刻$t$，为用户$U$，在上下文$C$，从视频库$V$中预测视频$i$的类别。
+
+$$P(w_t=i|U,C)=\frac{e^{v_iu}}{\sum_{j\in V}e^{v_ju}}$$
+
+上式为一个softmax，$u\in R^N$是<用户，上下文>的高位embedding，$v_j\in R^N$是视频$j$的embedding。DNN需要做的，就是学习<用户，上下文>的高位embedding，$u$.
+
+![img](/images/in-post/post-blog-DNNytbmatch.png)
+
+### Feature
+
++ Embedded video
+
++ 搜索记录
+
++ 人口统计信息：性别，年龄，地域
+
++ “Example Age”
+
+  这一特征是为了应对视频的时效性。因为youtube每时每刻都有新的视频上传，用户还是会倾向于新的视频，而传统的使用用户过去信息训练的模型会对过去的行为有隐形的bias，基本上反应的是训练时段的观看喜好。于是将“age"加入模型训练中。
+
+## Ranking
+
+Ranking 的模型与 cadidate generation的基本一致，不同之处是training变成了weighted logistic regression对视频打分。
+
+![img](/images/in-post/post-blog-DNNytbrank.png)
+
+作者的目标是预测期望的观看时长，有点击的是正样本，使用观看时长加权，无点击的为负样本，使用单位权重unit weight (应该是1)。LR 学习到的odds (一个事件的**发生比**（英语：Odds）是该事件发生和不发生的比率)为：
+
+$$\frac{\sum{T_i}}{N-k}=\frac{\frac{\sum{T_i}}{N}}{\frac{N-k}{N}}=\frac{E\[T\]}{1-P}=\frac{E\[T\](1+P)}{1-P^2}$$
+
+$N$是总样本数，$k$是正样本数，$T_i$是第$i$个正样本的观看时长，$P$是点击率。实际中$P$较小，这样odds接近于$E[T]$，即期望观看时长。
+
+## Summary
+
+虽然用到了DNN，但感觉整个系统的重心还是在embedding上，还需要看一看embedding的东西。

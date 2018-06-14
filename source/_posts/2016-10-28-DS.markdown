@@ -1,0 +1,224 @@
+---
+layout:     post
+title:      "基于 Deterministic Select 的快速选择"
+tags:
+    - Algorithm
+mathjax: true
+---
+
+> “可参考《算法导论 第三版》第123页”
+
+
+## 前言
+
+算法老师 Dominik 在 week5 最后一节课快结束时讲到，当时比较匆忙，在此做以整理，尽量使说明通俗易懂。
+
+这个算法用于求一个无序数组中的第k大数，并且可以保证**最坏情况下**时间复杂度为 O(n)。在本文最后会对这一时间复杂度进行说明。
+
+---
+
+## 正文
+
+寻找第k大的数，这是个看起来十分简单的问题，最简单的想法，把数组排个序，然后输出第k个。那么对于排序算法，有归并排序**MergeSort**和快速排序**QuickSort**，时间复杂度都是O（nlogn），当然你也可以使用堆排序，然后pop k次。
+
+本文将介绍一种**基于中位数**的快速选择算法 **Deterministic Select**，它可以达到最坏情况下O（n）的时间复杂度。在介绍这一算法前需要首先熟悉一下通常而言的 **QuickSelect** 方法。
+
+
+### Quick Select 
+
+当然，其实我很想说，在介绍快速选择算法**quickselect**之前，需要先熟悉一下快速排序算法**quicksort**，可是这样就显得啰哩啰嗦了。所以如果你不知道快排的话，还是先乖乖的拿起数据结构或者算法书学习一个。
+
+快速选择的思想来源于快速排序，转化也十分简单。
+
+在快速排序中，我们首先随机选择数组中的一个数作为**pivot**（一般选择第一个数），然后遍历一遍数组，***将比pivot小的数放在它的左边，将比pivot大的数放在它的右边***，再递归排序pivot左右两侧的数即可。
+
+在快速选择时，因为我们要寻找第k大的数，所以我们可以记录一下在上面斜体字执行完后，pivot 是这个数组中的第几个（假设为第 m 个），如果k == m，那么 pivot就是第k大的数，如果k < m，那么第 k 大的数在 pivot 左边的数组中，依然是第k大，否则在 pivot 右边的数组中，是第 k - m 大。
+
+``` c++
+// 伪代码
+int QuickSelect(array A, int k)
+{
+	if |A| == 0 : error
+	if |A| == 1 : if K == 1 :return A[1]
+			else : error
+	select pivot from A randomly
+
+	array Left : those < pivot
+	array Right : those >= pivot
+	m = |Left| + 1
+
+	if k == m : return pivot
+	if k < m : return QuickSelect(Left, k)
+	else : return QuickSelect(Right, k-m)
+}
+```
+由于quicksort对于 pivot 选择的随机性，我们可以计算它的average running time 的 worst case。
+
+![img](/images/in-post/post-blog-devidearray.png)
+
+现在我们做如下定义，假设上图代表一个数组，我们称在完成一次数组划分后，pivot 位于数组靠近中间的位置为 good 位置，位于靠两边的位置为 bad 位置。那么 good 与 bad 的长度各占1/2.
+
+现在计算worst case，在最坏情况下，在一次数组划分后，pivot位于数组的起始或结束位置，设数组长度为n，在数组中寻找第k大的数所需时间为 T(n)。则T（n）的迭代式如下
+
+$$T(n)=n+\frac{1}{2}T(n)+\frac{1}{2}T(\frac{3}{4}n)$$
+
+如何理解这个式子呢，首先，对数组以pivot为标准划分一次需要O（n）的时间，此时 pivot 要么在 good 位置，要么在 bad 位置，随机情况下，两者的概率是1/2，因为现在考虑最坏情况，那么pivot的位置会在上图**灰色箭头**处,于是若pivot在bad位置，则所需时间为T(n),若在good位置，所需时间为T(3n/4)。
+
+对迭代式稍作变换有
+
+$$T(n)=2*n+T(\frac{3}{4}n)$$
+
+根据等比数列求和可得
+
+$$T(n)=8n$$
+
+于是，在平均情况下，quicksort的最坏时间复杂度是线性的。但是，考虑非平均情况，比如这个数组的结构不是很好或者我们的运气很背，导致每次划分完数组，pivot的位置都在数组的两端，那么这个方法就会退化为O（n^2）。下面要介绍的Deterministic Select算法则可以保证在最坏情况下，时间复杂度也是O（n）。
+
+### Deterministic Select
+
+考虑我们的输入数组为
+
+	100 93 78 76 34
+	25 22 9 6 1024
+	135 68 24 153 1
+	56 89 111 14 46
+	1034 45 12
+
+我们将这个数组以五个数为一组进行划分并排序，得到
+
+![img](/images/in-post/post-blog-5itemarray1.png)
+
+然后，我们以每组中位数的大小进行排序，得到
+
+![img](/images/in-post/post-blog-5itemarray2.png)
+
+从图中可以看出，这些中位数的中位数是56，而且经过这些操作，上图黄色底色位置的数可以被确定大于56，计算一下黄色底色的个数，不算**中位数的中位数** 56 所在的列和不足5个的列（在本例中，不足5个数的列恰在左边，当然它很可能出现在右边），则其个数至少为
+
+$$3*(\frac{1}{2}[\frac{n}{5}]-2)>=\frac{3n}{10}-6$$
+
+同理，可以确定小于 56 的数（在左上角）的个数也至少为这么多。看到这里大家可能会明白了吧，如果我们选择 56 作为 pivot ，那么每次划分数组，都可以保证 pivot 的左右两边分别至少被划分了这么多数，为方便计算，去掉常数项，就有3n/10的数至少分布在 pivot 两侧，这个比例很接近1/3，也就是说经过这样划分，pivot 处于good位置，考虑此时的worst case
+
+$$T(n)=n+T(\frac{3}{10}n)$$
+
+很明显这是线性时间复杂度。
+
+这一算法的思想依然来源于quicksort，但是通过巧妙选取pivot，使得每次划分数组，都可以至少排除约1/3的数，从而保证了时间的线性性质。
+
+下面是算法的代码实现，在实际过程中，我们没必要对5个数的小数组再进行按照中位数排序，只要递归找到中位数的中位数即可（上面对5个小数组排序只是为了说明所占比例问题）
+
+``` c++
+//
+//  main.cpp
+//  deterministic_select
+//
+//  Created on 16/10/27.
+
+#include <iostream>
+using namespace std;
+
+/*-----------------------------------------------
+ * Function   -   sort these 5 numbers and return
+ *                the median
+ * ==============================================
+ * arr        -   the array need to be sorted
+ * arr_size   -   the size
+ * ==============================================
+ * Return     -   the median
+ */
+int BubbleSort(int *arr, int arr_size)
+{
+    int *a =new int[arr_size];
+    for(int i = 0;i< arr_size;++i) a[i] = arr[i];
+    bool flag;
+    for(int i = 0;i<arr_size;++i)
+    {
+        flag = false;
+        for(int j = i;j<arr_size;++j)
+        {
+            if(a[i] > a[j])
+            {
+                int tmp = a[i];
+                a[i] = a[j];
+                a[j] = tmp;
+                flag = true;
+            }
+        }
+        if(! flag) break;
+    }
+    return a[arr_size/2];
+}
+
+/*----------------------------------------------
+ * Function   -   return the num-th number in
+ *                this array running time O(n)
+ * =============================================
+ * arr        -   the input array
+ * arr_size   -   the size of the input array
+ * num        -   want to find the num-th number
+ *                in this array
+ * =============================================
+ * Return     -   the num-th number
+ */
+int DS(int * arr, int arr_size, int num)
+{
+    if(arr_size == 1)
+    {
+        return arr[0];
+    }
+    
+    int arr_num = arr_size / 5;
+    int *split_median = new int[arr_num + 1];
+    for(int i = 0;i<arr_num;++i)
+    {
+        split_median[i] = BubbleSort(arr + i * 5, 5);
+    }
+    if(arr_size % 5 != 0)
+    {
+        split_median[arr_num] = BubbleSort(arr + arr_num*5, arr_size - arr_num*5);
+        arr_num ++;
+    }
+    
+    int pivot,pivot_index;
+    pivot = DS(split_median, arr_num, arr_num/2);
+    delete [] split_median;
+    
+    for(int i = 0;i<arr_size;++i)
+    {
+        if(pivot == arr[i]) pivot_index = i,break;
+    }
+    
+    int left = 0, right = arr_size-1;
+    arr[pivot_index] = arr[0];
+    while(left < right)
+    {
+        while(left < right && arr[right] >= pivot)
+            right --;
+        if(left < right)
+            arr[left ++] = arr[right];
+        while(left < right && arr[left] < pivot)
+            left ++;
+        if(left < right)
+            arr[right --] = arr[left];
+    }
+    arr[left] = pivot;
+    
+    if(left == (num-1)) return pivot;
+    if((num-1) < left) return DS(arr, left, num);
+    else return DS(arr + left + 1, arr_size - left - 1, num - left - 1);
+}
+
+int main()
+{
+    int Size = 23;
+    int *Array = new int[Size];
+    cout << "Please choose the n-th number, the max number is "<< Size<<" : "<<endl;
+    int No;
+    cin >> No;
+    freopen("input.txt", "r", stdin);
+    for(int i = 0;i<Size;++i) cin >> Array[i];
+    int ans = DS(Array, Size, No);
+    cout << ans << endl;
+    return 0;
+}
+```
+

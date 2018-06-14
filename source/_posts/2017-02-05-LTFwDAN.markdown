@@ -1,0 +1,80 @@
+---
+layout:     post
+title:      "Learning Transferanle Features with Deep Adapation Networks"
+tags:
+    - Notes
+---
+
+> “It's a good habite to take notes”
+
+
+## 前言
+
+You can find the related paper from the following address.
+
+[Learning Transferable Features with Deep Adaptation Networks](http://jmlr.org/proceedings/papers/v37/long15.pdf)(1)
+
+[How transferable are features in deep neural networks?](http://papers.nips.cc/paper/5347-how-transferable-are-features-in-deep-neural-networks.pdf)(2)
+
+[A Kernel Two-Sample Test](http://jmlr.org/papers/volume13/gretton12a/gretton12a.pdf)(3)
+
+---
+
+## 正文
+
+Deep neutral network can learn transferable transferable features which generalize well to novel tasks for domain adaptation.(1)
+
+The usual transfer learning approach is to train a base network and then copy its first n layers to the first n layers of a target network. The remaining layers of the target network are then randomly initialized toword the target task. (2)
+
+Here comes some related terms.
+
+### RKHS 
+
+RHKS means reproducing kernel Hilbert space.(再生核希尔伯特空间)
+
+First Hilbert space, it is a generalization of Euclidean space. Beginning with the basic vector space, define an  inner product operation in this vector space, the space will be upgraded to an inner product space. The norm is defined:
+
+\begin{aligned} \|x\|^2=\langle x, x\rangle \end{aligned}
+
+So, it becomes an normed vector space. Norms can define a metric:
+
+\begin{aligned} d(x_1,x_2) = \|x_1-x_2\| \end{aligned}
+
+Then it becomes a metic space. If it is complete under this metric, the space is called Hilbert Space. In brief, Hilbert space is a complete inner product space.
+
+Then retroducing kernel.
+
+Remember in SVM, when the dataset is not linearly separable, we map the data point to a higher dimesional space and the data may become linearly separable. This higer dimentional space is called "reproducing kernel Hilbert space". However, it is usually hard to figure out the mapping function because the growth of dimentional number is explosive. Here we need **Kernel Function** to handel this problem. It calculates inner product of two vectors in RKHS. 
+
+One useful property is that the same demensional space is isomorphic to each other, which means the inner product, norm, metric and vector operations, etc. can be maintained in the conversion between different space.
+
+### MMD 
+
+MMD means maximum mean discrepancy.(最大平均差异) It is used to determine whether the two distributions **p** and **q** are the same. For all the function f whose input is the sample space complying with the certain distribution, if the mean value is same, we assume those two distritions are the same.
+
+Or rather, by finding a continuous function f in the sample space, we get two mean value with different distribution. Then we get **mean discrepancy** by subtracting. Find a f to maximum the mean discrepancy and we get MMD.
+
+For a two-sample test, there are two hypotheses. Null hypothesis: p = q. The alternative hypothesis: p != q.
+
+In RKHS, we have:(3)
+
+\begin{aligned} MMD^2[f,p,q]=\|\mu_{p}-\mu_{q}\|^2_{H} \end{aligned}
+
+### MK-MMD
+
+MK-MMD means multiple kernel variant of MMD and it minimize Type two error.
+
+* Type one error: 存伪
+* Type two error: 弃真
+
+---
+
+### Model(DAN)
+
+![img](/images/in-post/post-blog-DANmdoel.png)
+
+The basic architecture is **AlexNet**, which is comprised of five convolutional layers (conv1-conv5) and three fully connected layers (fc6-fc8). The output layer is softmax.
+
+Because features in lower convolutional layers are general, the author starts with an AlexNet model pertained on ImageNet 2012 and copies conv1-conv3 from pertained model, then fine-tunes conv4-conv5 and fully connected layers fc6-fc7, and trains classifier layer fc8, both via backpropagation.
+
+The author adds an MK-MMD-based multi-layer adaptation regularizer to CNN risk so that the distributions on the source and target become similar under the hidden representations of fully connected layers fc6-fc8.

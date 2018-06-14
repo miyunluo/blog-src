@@ -1,0 +1,166 @@
+---
+layout:     post
+title:      "啊哈！算法"
+tags:
+    - 编程珠玑
+---
+
+> “字字珠玑”
+
+
+## 前言
+
+书是某github大神推荐的，买了有一段时间了，却一直没看，今天静下心来读一读。
+
+
+---
+
+## 正文
+
+第二章很短，在本章开头提出了三个问题，就在此对这三个问题进行讨论和解决。
+
+### 问题A
+
+> 给定一个最多包含 40亿个随机排列的 32位整数的顺序文件，找出一个不在文件中的 32位整数。（为什么一定有数缺失）<br>在具有足够内存的情况下，如何解决该问题？<br>如果有几个外部的“临时”文件可用，但是仅有几百字节的内存，又该如何解决该问题？
+
+因为40亿小于2的32次方所以一定有数缺失。
+
+#### 1.内存足够
+
+可以使用位图（第一章中有介绍），使用大小为2的32次方除以8字节=512MB的位图来表示出现的整数。
+
+#### 2.内存有限
+
+从整数的二进制表示入手，采用二分搜索。
+
+第一趟需要读入40亿个数，判断每个数最高位是0还是1，将第一位是0的存入一个文件，第一位是1的存入另一个文件。于是将40亿个数分被成了两份，而缺失的数必定会在较小的那一份里面。然后，选取较小的那一份，再按照第二位是否为1，分成两份。依次处理每一位，直到有一个分组的个数为0.
+
+举个例子，设数集是｛1，2，3，4，5，6，7，8，9，10｝，按照第一位是0/1分组得到
+
+    第一位为0: 1，2，3，4，5，6，7（7个数）
+	第一位为1: 8，9，10（3个数）
+
+第一位为1的数只有3个，小于16/2 ＝ 8，所以缺失的数在第二组，当然第一组也缺失了0.我们选择第二组继续进行分组
+
+    第二位为0: 8，9，10（3个数）
+	第二位为1:（0个数）
+
+现在我们得到一个分组包含的数字个数为0，于是我们找到了10之后的数字11，12，13，14，15都缺失了。
+
+``` c++
+// a是原始数组，b是当前位为1的数组，c是当前位为0的数组
+int split(int *a, int *b, int *c, int a_len,int bit)
+{
+	int b_iterator, c_iterator, i;
+	int v = 0, ans;
+	while(bit--){ // bit starts from 31
+		v = (1<<bit);
+		for(i = b_iterator = c_iterator = 0;i<a_len;++i)
+		{
+			if(a[i]>>bit) b[b_iterator ++] = a[i];
+			else c[c_iterator ++] = a[i];
+		}
+		if(b_iterator <= c_iterator){
+			ans += v;
+			a = b;
+			a_len = b_iterator;
+		}else{
+			a = c;
+			a_len = c_iterator;
+		}
+	}
+	return ans;
+}
+```
+
+### 问题B
+
+>将一个n元一维向量向左旋转 i 个位置。<br>例如，当 n = 8且 i = 3时，向量 abcdefgh 旋转为 defghabc。
+
+借用书上原话，我们将问题看成是把数组ab转换成ba，同时假定我们拥有一个函数可以将数组中特定部分的元素求逆。从ab开始，首先对a求逆得到a^r b，然后对b求逆得到a^r b^r。最后对整体求逆，得到(a^r b^r)^r,此时就恰好是ba。
+
+
+``` c++
+void reverse(int i,int j)
+{
+	int tmp;
+	while(i < j)
+	{
+		tmp = x[i];
+		x[i] = x[j];
+		x[j] = tmp;
+		++i;--j;
+	}
+}
+
+void rotate(int i, int n)
+{
+	reverse(0,i-1);
+	reverse(i,n-1);
+	reverse(0,n-1);
+}
+```
+这个方法在**时间空间上的效率都很高**，而且思路简单不容易出错。
+
+还有一种运用移位的方法。书上称之为**精巧的杂技动作**。
+
+首先移动x[0]到临时变量t，然后移动x[i]至x[0]，x[2i]至x[i]，依次类推(x中的所有下标对n取模)，直至返回到取x[0]中的元素，此时改为从t取值然后终止过程。如果该过程没有移动全部元素，就从x[1]开始再次进行移动，直到所有的元素都已经移动为止。
+
+``` c++
+//传说中的共(g)产(c)党(d)算法,求最大公约数
+int gcd(int a, int b)
+{
+    if(b == 0) return a;
+    return gcd(b, a % b);
+}
+//num为等待旋转的数组,len为长度,rotdist为位移长度
+void rotate(int *nums, int len, int rotdist) {
+    int i;
+    for (i = 0; i < gcd(rotdist, len); i++) {
+        int tmp = nums[i];
+        int j = i;
+        while (true) {
+            int k = (j + rotdist) % len;
+            if (k == i) break;
+            nums[j] = nums[k];
+            j = k;
+        }
+        nums[j] = tmp;
+    }
+}
+```
+
+### 问题C
+
+>给定一个英语词典，找出其中的所有变位词集合。例如，"pots"、"stop"、"tops"互为变位词，因为每一个单词都可以通过改变其他单词中字母的顺序来得到。
+
+我们可以标识字典里的每一个词，使得在相同变位词类中的单词具有相同的标识。然后，将具有相同标识的单词集中在一起。这将原始的变味词问题简化为两个子问题：选择标识和集中具有相同的单词。
+对于第一个问题，我们可以使用基于排序的标识：将单词中的字母表顺序排列。"deposit"的标识就是"deiopst"，这也是"dopiest"和其他任何该类单词的标识。要解决第二个问题，我们将所有的单词按照其标识的顺序排序。
+
+这里用hash table来解决
+
+``` c++
+vector<string> anagram(vector<string>& Strs)
+{
+	unordered_map<string, vector<int>> map;
+	vector<string> ans;
+	int num = Strs.size();
+	string tmp;
+	for(int i = 0;i<num;++i)
+	{
+		tmp = Strs[i];
+		sort(tmp.begin(), tmp.end());
+		map[tmp].push_back(i);
+	}
+	for(auto &m : map)
+	{
+		int n = m.second.size();
+		if(num > 1)
+			for(int i = 0;i<n;++i)
+				ans.push_back(Strs[m.second[i]]);
+	}
+	return ans;
+}
+
+```
+

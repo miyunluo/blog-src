@@ -1,0 +1,110 @@
+---
+layout:     post
+title:      "Install Python and Pip without Root"
+tags:
+    - Python
+---
+
+> “配环境什么的最烦了。”
+
+## 前言
+
+使用Linux最坏的情况就是没有root权限，然而这种情况普遍存在于ssh到服务器的时候。当然不赋予root权限是出于安全性的考虑，此时我的脑海中又浮现出那个场景…那日秋风萧瑟，残阳滴血，红铜铁马，万古如昨，tian哥以super_user的身份敲下了enter，那一键荡气回肠，然后老师的服务器就宕机了。咳咳，扯远了。。
+
+且说我遇到的问题是，需要登录的服务器是一个集群 (和SJTU的pi集群类似)，运行程序时需将其提交至一个节点(node)来运行，但是我发现自己本地的python(2.7.5)版本与node上的python(2.7.13)版本并不一致… (不是很懂这种设计的初衷是什么-_-\\)，从log error看似乎是两个版本python不兼容，程序试图从我的本地import一些模块，然而模块报错了。这么一个性能怪兽没法使用真是难受，于是就起了重装python的念头。
+
+
+## 正文
+
+具体流程如下
+
+### 1.Compile python in local directory
+
+```shell
+mkdir ~/python 
+cd ~/python
+wget https://www.python.org/ftp/python/2.7.13/Python-2.7.13.tgz
+tar zxfv Python-2.7.13.tgz
+find ~/python -type d | xargs chmod 0755
+cd Python-2.7.13
+```
+
+我选择的安装目录是"~/python"。解压完进入文件夹，接下就是编译了
+
+```shell
+./configure --prefix=$HOME/python
+make && make install
+```
+
+*$HOME/python* 是引导其安装在自己的目录里(即就是~/python)，否则默认安装路径在/usr下，一般用户没有权限读写此文件夹。
+
+编译完成后需要让系统知道python的安装位置，vim打开~/.bashrc_profile设置如下环境变量。这里默认一般服务器使用bash，其他类似。
+
+```shell
+export PATH=$HOME/python/Python-2.7.13/:$PATH
+export PYTHONPATH=$HOME/python/Python-2.7.13
+```
+
+然后使用 *source* 让环境变量生效
+
+```shell
+source ~/.bashrc_profile
+```
+
+这里可以使用 *which python* 确认一下位置，正确应该返
+
+```shell
+~/python/Python-2.7.13/python
+```
+
+### 2.Install pip
+
+Pip是python常用的包管理器，使用还算方便，顺手安装。
+
+```shell
+wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py -O - | python - --user
+```
+
+运行完后，去~/.bashrc_profile里添加
+
+```shell
+export PATH=$HOME/.local/bin:$PATH
+```
+
+同时使用 *source* 使其生效。同理可以用 *which pip* 看看安装位置，正确应返回
+
+```shell
+~/.local/bin/pip
+```
+
+## 遇到的问题
+
+一共编译三次，虽然每次都提醒 “your build may be uncompleted” 但最后一次使用pip安装了需要的包后基本正常，可以使用。
+
+第一次编译完后，安装theano，调用时显示如下错误
+
+```shell
+Exception: Compilation failed (return status=1):
+/usr/bin/ld:/usr/local/lib/libpython2.7.a(abstract.o):
+relocation R_X86_64_32 against 'a local symbol'can not be used
+when making a shared object; recompile with -fPIC.
+/usr/local/lib/libpython2.7.a: could not read symbols: Bad
+value. collect2: ld returned 1 exit status.
+```
+
+似乎是python没编译好，报错建议 “recompile with -fPIC”，于是添加这个选项重新编译
+
+```shell
+./configure --prefix=$HOME/python -enable-shared CFLAGS=-fPIC 
+make && make install
+```
+
+这次编译完后，python直接无法使用了。于是把~/python目录清空，重新解压，第三次编译，不使用“fPIC”。
+
+```shell
+./configure --prefix=$HOME/python
+make && make install
+```
+
+至于第三次为什么没有严重错误，自己也不是十分清楚，但也不能归于玄学范畴。我猜测第一次失败可能是之前2.7.5版本python的各种库依然存在，虽然reinstall过了，但不能保证没有遗漏。进行第三次前对旧文件删除的比较彻底，所有的模块都重新安装，于是没有产生致命错误。
+

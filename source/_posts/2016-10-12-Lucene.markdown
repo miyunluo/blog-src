@@ -1,0 +1,277 @@
+---
+layout:     post
+title:      "Lucene6.1初级笔记与Demo"
+tags:
+    - Lucene
+---
+
+> “似乎什么也没写”
+
+
+## 前言
+
+暑期参加了一个只有三个人的宏大项目，一个人写爬虫，一个人写Lucene，一个我也不知道做了什么。很不凑巧，我就是写Lucene的那个。之前基本没写过java，Lucene也是第一次接触，不过也算是短时间内完成了，功能上比较简陋。今天刚结束了这个项目莫名其妙的一个答辩，写点基础的，给那些像我一样刚刚接触的同学。
+
+---
+
+## 正文
+
+Lucene是一个全文检索框架，功能异常强大，可以进行精确模糊查询还有一些高级的查询功能，其主要功能分为两大部分：索引（index）和查询（search）虽然无法与Google的搜索引擎媲美，但是作为一个开源框架，其可定制性极高，可以满足特定方面的检索需求。
+
+Lucene的介绍文档很多，但是都比较陈旧，有关最新6.0+版本的Lucene介绍，可以参考[代码馆 Lucene6.0实战](http://codepub.cn/2016/05/20/Lucene-6-0-in-action-1-Index-creation/)，介绍的十分基础也十分详细，有样例与运行结果，对照学习效果十分好。
+
+当然，你也许会有这种感觉，看完了[代码馆 Lucene6.0实战](http://codepub.cn/2016/05/20/Lucene-6-0-in-action-1-Index-creation/)的博文似乎还是无法下手做出什么东西来，在这里给出一个demo，供初次接触lucene的同学参考。
+
+
+
+### 建立索引
+``` java
+//*IndexFiles.java*//
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Date;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.core.LowerCaseFilter;
+import org.apache.lucene.analysis.core.StopFilter;
+import org.apache.lucene.analysis.en.PorterStemFilter;
+import org.apache.lucene.analysis.en.PorterStemFilterFactory;
+import org.apache.lucene.analysis.cn.smart.SmartChineseAnalyzer;
+import org.apache.lucene.analysis.standard.StandardFilterFactory;
+import org.apache.lucene.analysis.standard.StandardTokenizer;
+import org.apache.lucene.document.LongPoint;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig.OpenMode;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.Version;
+import org.tartarus.snowball.ext.PorterStemmer;
+
+
+public class IndexFiles {
+
+	public IndexFiles(String indexDestiny, String documentsPath){
+		boolean create = true;
+		//******** find the document_path *********//
+		final Path docDir = Paths.get(documentsPath);
+		if (!Files.isReadable(docDir)) {
+			System.out.println("Document directory '" +docDir.toAbsolutePath()+ "' does not exist or is not readable, please check the path");
+			System.exit(1);
+		}
+
+		Date start = new Date();
+		try {
+			System.out.println("Indexing to directory '" + indexDestiny + "'...");
+
+			Directory dir = FSDirectory.open(Paths.get(indexDestiny));      
+			Analyzer analyzer = new SmartChineseAnalyzer();
+			IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
+
+			if (create) {
+				iwc.setOpenMode(OpenMode.CREATE);
+			} else {
+				iwc.setOpenMode(OpenMode.CREATE_OR_APPEND);
+			}
+			//******** construct an IndexWriter *******//
+			IndexWriter writer = new IndexWriter(dir, iwc);
+			indexDocs(writer, docDir);
+			writer.close();
+			Date end = new Date();
+			//*********** calculate the time **********//
+			System.out.println(end.getTime() - start.getTime() + " total milliseconds");
+
+		} catch (IOException e) {
+			System.out.println(" caught a " + e.getClass() +
+					"\n with message: " + e.getMessage());
+		}
+	}
+	//*********** traverse the file tree ************//
+	static void indexDocs(final IndexWriter writer, Path path) throws IOException {
+		if (Files.isDirectory(path)) {
+			Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
+				@Override
+				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+					try {
+						indexDoc(writer, file, attrs.lastModifiedTime().toMillis());
+					} catch (IOException ignore) {
+					}
+					return FileVisitResult.CONTINUE;
+				}
+			});
+		} else {
+			indexDoc(writer, path, Files.getLastModifiedTime(path).toMillis());
+		}
+	}
+	
+	//******** Index single document ********//
+	static void indexDoc(IndexWriter writer, Path file, long lastModified) throws IOException {
+		try (InputStream stream = Files.newInputStream(file)) {
+			Document doc = new Document();
+			//*********** title ************//
+			Field titleField = new StringField("title", file.getFileName().toString(), Field.Store.YES);
+			doc.add(titleField);
+			//************ path ************//
+			Field pathField = new StringField("path", file.toString(), Field.Store.YES);
+			doc.add(pathField);
+			//******* last modify time ******//
+			doc.add(new LongPoint("modified", lastModified));
+			//******** content ********//
+			doc.add(new TextField("contents", new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))));
+			if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
+				writer.addDocument(doc);
+			} else {
+				writer.updateDocument(new Term("path", file.toString()), doc);
+			}
+		}
+	}
+}
+```
+
+### 检索文件
+``` java
+//*SearchFiles.java*//
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Date;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.wltea.analyzer.lucene.IKAnalyzer;
+import org.apache.lucene.analysis.cn.smart.SmartChineseAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.FSDirectory;
+
+public class SearchFiles {
+	String indexPath;
+	int repeat = 0;
+	boolean raw = false;
+	Analyzer analyzer;
+	int hitsPerPage = 300;
+	
+	public SearchFiles(String indexPath) throws Exception {
+		this.indexPath = indexPath;
+		analyzer = new SmartChineseAnalyzer();
+	}
+
+	public String[][] query(String time0, String time1, String queryString, String field) throws IOException, ParseException{
+		IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
+		IndexSearcher searcher = new IndexSearcher(reader);
+
+		BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+		QueryParser parser = new QueryParser(field, analyzer);
+
+		if (queryString == null || queryString.length() == -1) {
+			new Exception("查询不能为空!");
+		}
+		queryString = queryString.trim();
+		if (queryString.length() == 0) {
+			new Exception("查询不能为空格!");
+		}
+
+		Query query = parser.parse(queryString);
+		System.out.println("...Searching for: " + query.toString(field));
+
+		if (repeat > 0) {                      // repeat & time as benchmark
+			Date start = new Date();
+			for (int i = 0; i < repeat; i++) {
+				searcher.search(query,100);
+			}
+			Date end = new Date();
+			System.out.println("Time: "+(end.getTime()-start.getTime())+"ms");
+		}
+
+		ScoreDoc[] hits = doPagingSearch(in, searcher, query, hitsPerPage, raw, queryString == null);
+		String[][] result = new String[hitsPerPage > hits.length ? hits.length :hitsPerPage][3];
+		
+		int index = -1;
+		for(int i=0; i < hits.length && index < hitsPerPage-1 ;++i) 
+		{
+			int docId = hits[i].doc;
+			Document d = searcher.doc(docId);
+			String p = d.get("path");
+			// judge if the doc is to choose
+			boolean fin = false;
+			System.out.println(p.charAt(13) +" "+ time0.charAt(3) +" "+ time1.charAt(3));
+			if(p.charAt(13)>=time0.charAt(3) && p.charAt(13)<=time1.charAt(3))
+			{
+				int tm0 = (time0.charAt(5) - '0')*10 + (time0.charAt(6) - '0');
+				int tm1 = (time1.charAt(5) - '0')*10 + (time1.charAt(6) - '0');
+				int m = (p.charAt(15) - '0')*10 + (p.charAt(16) - '0');
+				if(m >= tm0 && m <=tm1)
+				{
+					int td0 = (time0.charAt(8) - '0')*10 + (time0.charAt(9) - '0');
+					int td1 = (time1.charAt(8) - '0')*10 + (time1.charAt(9) - '0');
+					int day = (p.charAt(18) - '0')*10 + (p.charAt(19) - '0');
+					if(tm0 < tm1 && m == tm0 && day >= td0) fin = true;
+					if(tm0 < tm1 && m == tm1 && day <= td1) fin = true;
+					if(m > tm0 && m < tm1) fin = true; 
+					if(m == tm0 && m == tm1)
+						if(day >= td0 && day <= td1) fin = true;
+				}
+			}
+			System.out.println("fin: "+fin); // for debug use
+			if(fin){
+				result[index+1][0] = ""+(index+2);
+				result[index+1][1] = d.get("title");
+				result[index+1][2] = p.substring(10,20);
+				System.out.println(d.get("path")); // for debug use
+				index += 1;
+			}
+		}
+		reader.close();
+		if(index == -1) {new Exception("查询无果!");}
+		return result;
+	}
+
+	private ScoreDoc[] doPagingSearch(BufferedReader in, IndexSearcher searcher, Query query, 
+			int hitsPerPage, boolean raw, boolean interactive) throws IOException {
+		// Collect enough docs to show 5 pages
+		TopDocs results = searcher.search(query, 5 * hitsPerPage);
+		ScoreDoc[] hits = results.scoreDocs;
+		int numTotalHits = results.totalHits;
+		System.out.println(numTotalHits + " total matching documents");
+		return hits;
+	}
+}
+
+```
+关键处代码都写有注释，相信有了[代码馆 Lucene6.0实战](http://codepub.cn/2016/05/20/Lucene-6-0-in-action-1-Index-creation/)博文的基础，也不难理解。
+
+### 运行效果
+
+![img](/images/in-post/post-blog-Lucene.png)
+
+### 完整src见[Github](https://github.com/miyunluo/Lucene6.1-demo)
+
+-- miyunluo 于2016.10

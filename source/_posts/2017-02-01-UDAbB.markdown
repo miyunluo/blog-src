@@ -1,0 +1,49 @@
+---
+layout:     post
+title:      "Unsupervised Domain Adaptation by Backpropagation"
+tags:
+    - Notes
+---
+
+> “It's a good habite to take notes”
+
+
+## 前言
+
+I spent two afternoon for comprehension of this paper. And you can find the paper in the following address if you are interested.
+
+[Unsupervised Domain Adaptation by Backpropagation.](http://jmlr.org/proceedings/papers/v37/ganin15.pdf)
+
+---
+
+## 正文
+
+So, what is domain adaptation (域自适应)? In general, we can only feed the machine with limited labled data but we want to apply the classifier to other similar datasets (unabled). That means the source domain (源域) and the target domain (目标域) are **not identically distributed**, referring to the training set and test set in machine learning. Take a classical problem for example, recognizing junk mail. Classifier is trained on a certain user's mail data and we want to apply it to another user's e-mail, surely different from the former user, then domain adaptation is needed, or say transfer learning.
+
+
+### Domain invariant feature 
+
+Here comes the **domain invariant feature** (域不变特征). If we can learn some common features between source domain and target domain, the classifier learned from the source domain is also suitable to target domain. This article is using a conflict framework to learing domain invariant feature.
+
+The assumption of learning domain invariant features is that, if the features on different domains can not be distinguished on a trained domain classifier, which means the loss of classification is large, then this feature can be regarded as invariant feature. 
+
+### Model 
+
+The framework in this paper is as follow.
+
+![img](/images/in-post/post-blog-domainadp.png)
+
+The framework consists of three parts, a deep feature extractor (green), a deep label predictor (blue) and a domain classifier (red). Feature extractor extract features, usually has convolutional layers and pooling layers. Label predictor is fully connected layers plus logistical classifier. Domain classifier is fully connected layers plus cross entropy classifier.
+
+On one hand, in order to learn domain invariant feature, domain classification should not be carried out correctly, which means the loss of domain classifier should be maximized. On the other hand, we certainly require the classifier to be as accurate as possible, so the loss of domain classifier should be minimized.
+
+We denote the vector of parameters of all layers in those three parts as $\theta_f$, $\theta_y$, $\theta_d$.
+
+At training time, seek $\theta_f$ that ***maximize*** the loss of the <u>domain classifier</u>, seek $\theta_d$ that ***minimize*** the loss of the <u>domain classifier</u>, seek $\theta_y$ that minimize the loss of the <u>label predictor</u>.
+
+Then the parameters can be updated with backpropagation.
+
+![img](/images/in-post/post-blog-backpropfyd.png)
+
+$\mu$ is the learning rate, and the factor $\lambda$ is important according to author, otherwise the domain classifier loss will be minimized.
+
