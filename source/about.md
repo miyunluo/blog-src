@@ -37,12 +37,11 @@ hidedate: true
 
 + **Baidu Inc.**, Shanghai
 
-  April 2017 - Now
+  April - July 2018
 
 + **Tencent**, Shanghai
 
-  March - April 2017
-
+  March - April 2018
 
 
 ---
