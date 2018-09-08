@@ -10,8 +10,8 @@ hidedate: true
 
 > # Luo, Yu Dong
 > # 罗煜东
-> - Undergraduate in Computer Science, Shanghai Jiao Tong University
-> - Will begin MPhil at fall 2018, Simon Fraser University, Canada
+> - Former undergraduate in Computer Science, Shanghai Jiao Tong University
+> - Begin MPhil at fall 2018, Simon Fraser University, Canada
 > - Love guitar but not good at
 
 ---
