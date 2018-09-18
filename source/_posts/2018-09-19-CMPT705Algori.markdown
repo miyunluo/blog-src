@@ -1,0 +1,82 @@
+---
+layout:     post
+title:      "CMPT705-Design and Analysis of Algorithms"
+tags:
+    - SFUcourse
+---
+
+> “Prof.  Leonid Chindelevitch teaches this course”
+
+## Dynamic Programming
+
+**找零问题**
+
+注：找零问题可以使用贪心算法解决，符合常理，可以证明 [homework]。
+
+**0-1背包**
+
+有 `n` 个物品，每个物品有重量 `w` 和 价值 `u`，背包的承重容量为 `c`，放入物体使得背包中的物品价值总和最大。
+
+使用 $D[i,j]$ 表示使用前 `i` 个物品，最大 `j` 容量获得的最大价值，状态转移方程为
+
+![img](/images/in-post/post-blog-0-1bag.png)
+
+code
+
+```c++
+#include<cstdio>
+#include<algorithm>
+using namespace std;
+#define MAXN 1000
+#define MAXC 100000
+
+int weight[MAXN], value[MAXN], x[MAXN];
+int dp[MAXN][MAXC];
+
+int main(){
+    freopen("*****/Test/data.in", "r", stdin);
+    freopen("*****/Test/data.out", "w", stdout);
+    int n, C;
+    while(scanf("%d %d", &n, &C) != EOF){
+        for(int i=0; i<n; ++i)    scanf("%d %d", &weight[i], &value[i]);       
+        for(int i=0; i<=n; ++i){
+            for(int j=0; j<=C; ++j){
+                dp[i][j] = (i==0) ? 0 : dp[i-1][j];
+                if(i>0 && j>=weight[i-1]) // i从0到n,第i个对应下标i-1
+                    dp[i][j] = max(dp[i-1][j], dp[i-1][j-weight[i-1]]+value[i-1]);
+            }
+        }
+        printf("%d\n", dp[n][C]);// answer
+
+        int j=C; // backtracking
+        for(int i=n; i>0; --i){
+            if(dp[i][j] > dp[i-1][j]){
+                x[i-1] = 1;
+                j = j-weight[i-1];
+            }
+        }
+        for(int i=0;i<n;++i) printf("%d ", x[i]);
+        printf("\n");
+    }
+    fclose(stdin);
+    fclose(stdout);
+    return 0;
+}
+```
+
+样例
+
+```c++
+输入：
+5 10
+4 9
+3 6
+5 1
+2 4
+4 9
+输出：
+22
+1 0 0 1 1
+```
+
+dp只可以得到最大的价值是多大，如果需要知道方案的具体内容，即究竟选了哪几个物品，就需要回溯。回溯的思路也很简单，如果 $D[i,j] > D[i-1,j]$，那么说明物品 `i` 被选择了。`j` 初始化为总容量 `c`，`i` 从n循环至1.
