@@ -7,11 +7,25 @@ tags:
 
 > “Prof.  Leonid Chindelevitch teaches this course”
 
+## Greedy Algorithm
+
+**找零问题**
+
+从最大面值的硬币开始，每一个面值的使用贪心法。
+
+---
+
+
+
+**Huffman Coding**
+
+
+
 ## Dynamic Programming
 
 **找零问题**
 
-注：找零问题可以使用贪心算法解决，符合常理，可以证明 [homework]。
+如何traceback
 
 **0-1背包**
 
@@ -80,3 +94,295 @@ int main(){
 ```
 
 dp只可以得到最大的价值是多大，如果需要知道方案的具体内容，即究竟选了哪几个物品，就需要回溯。回溯的思路也很简单，如果 $D[i,j] > D[i-1,j]$，那么说明物品 `i` 被选择了。`j` 初始化为总容量 `c`，`i` 从n循环至1.
+
+---
+
+
+
+**Longest common subsequence**
+
+最长公共子序列，区别于最长公共子串。比如 `ABCD` 与 `DACB` 的最长公共子序列是AC。
+
+两个字符串 $s$ 和 $t$，使用 $L[i,j]$ 表示 $s$ 的前 $i$ 个字符与 $t$ 的前 $j$ 个字符的最长公共子序列的长度，状态转移方程为
+
+![img](/images/in-post/post-blog-lcsubseq.png)
+
+```c++
+#include<string>
+#include<algorithm>
+#include<iostream>
+using namespace std;
+
+int longestCommonSubsequence(string A, string B){
+    int n = A.length();
+    int m = B.length();
+    int dp[n+1][m+1];
+    for(int i = 1; i<=n; ++i)
+        for(int j = 1; j<=m; ++j)
+        {
+            dp[i][j] = max(dp[i-1][j], dp[i][j-1]);
+            if(A[i-1] == B[j-1])
+                dp[i][j] = dp[i-1][j-1]+1;
+        }
+    return dp[n][m];
+}
+
+int main(){
+    string A = "ABCD";
+    string B = "DACB";
+    cout << longestCommonSubsequence(A, B) << endl;
+    return 0;
+}
+```
+
+---
+
+
+
+**Longest common substring**
+
+最长公共子串。使用 $L[i,j]$  表示 $S_{1:i}$ 与 $T_{1:j}$ 的最长公共子串。转移方程为 
+
+![img](/images/in-post/post-blog-lcsubstr.png)
+
+这个方程的意思其实就是匹配两个字符串，每次使得 $S[i]==T[j]$，也就是 $S$ 与 $T$ 匹配了一部分而且以 $S[i]$ 或者 $T[j]$ 结尾，否则值为0，认为匹配中断。
+
+![img](/images/in-post/post-blog-lcsubstrmatch.png)
+
+```c++
+int LongestCommonSubstring(string s1, string s2)
+{
+    int m = s1.size(), n = s2.size();
+    int dp[m+1][n+1];
+    int longest = 0;
+    for(int i=0; i<=m; ++i)
+        for(int j = 0; j<=n; ++j)
+        {
+            if (i == 0 || j == 0) dp[i][j] = 0;
+            else if(s1[i-1] == s2[j-1])
+            {
+                dp[i][j] = dp[i-1][j-1]+1;
+                longest = max(longest, dp[i][j]);
+            }
+            else dp[i][j] = 0;
+        }
+    return longest;
+}
+```
+
+需要输出所有的最长公共子串，可以在每次dp得到最大值的时候，都记录一下$(i,j)$, 然后做一次遍历输出所有 $S$ 与 $T$ 的 `substr()` 相等的且长度等于最大长度的子串。
+
+<u>这个问题还可以通过KMP算法解决，在之前的文章里</u> [link](http://miyunluo.com/2016/10/07/KMP/)
+
+---
+
+
+
+**Matrix multiplication**
+
+两个矩阵的维度分别是 $x\*y$ 与 $y\*z$ , 那么两个矩阵相乘的时间复杂度是 $O(xyz)$. 但是由于矩阵乘法有结合律，所以计算的先后顺序也决定了复杂度不同。目标为使得总复杂度最小。
+
+比如 $A$: $10\*20$, $B$: $20\*30$, $C$: $30\*40$，$(AB)C$ 需要32000操作，而 $A(BC)$ 为18000. 
+
+记$C[i,j]$ 为$A_iA_{i+1}...A_{j-1}A_j$ 的最优解，转换方程为
+
+![img](/images/in-post/post-blog-matrixmul.png)
+
+```c++
+#include <iostream>
+#include <algorithm>
+#include <climits>
+
+int dp[1024][1024] = {0};
+
+struct Matrix {
+    int row;
+    int column;
+};
+
+int matrixChainCost(Matrix *ms, int n) {
+    for (int scale = 2; scale <= n; scale++) {
+        for (int i = 0; i <= n - scale; i++) {
+            int j = i + scale - 1;
+            dp[i][j] = INT_MAX;
+            for (int k = i; k < j; k++) {
+                dp[i][j] = std::min(dp[i][j], dp[i][k] + dp[k+1][j] + (ms[i].row*ms[k].column*ms[j].column));
+            }
+        }
+    }
+    return dp[0][n - 1];
+}
+```
+
+---
+
+
+
+**Traveling Salesman Problem**
+
+选取一个城市为起点，经过图中其余的每一个城市一次，最终回到起点，使得路径最短。
+
+分析，假设顶点集合为 $V$，起点为 $v_1$，且先从 $v_1$ 到 $v_2$，则从 $v_2$ 出发沿着某一条路径回到 $v_1$ 经过 $V-\{v_1,v_2\}$ 每个点一次，且路径最短的那一条。
+
+设 $D[v_k,S]$ 表示从 $v_k$ 出发，经过集合 $S$ 中所有城市一次且仅一次，最后回到出发城市 $v_1$ 的最短路径的长度。有 $D[v_1, V-\{v_1\}] = \min\limits_{2\le k\le n}\{d_{ik} + D[v_k,V-\{v_1,v_k\}]\}$ 
+
+## Basic Graph Algorithms
+
+> Digraph 有向图
+
+**Transitive Closure 传递闭包**
+
+就是求解一个图的连通性，一般处理 **有向图**，得到一个连通矩阵。比如存在路径 $(u,v)$ and $(v,w)$，那么 $(u,w)$ 也是连通的。可见解决子问题 $(u,v)$ and $(v,w)$ 就可以解决上层问题 $(u,w)$。直接动态规划。
+
+算法名字叫 "Warshall Algorithm"，时间复杂度为 $O(V^3)$。
+
+```c++
+for each edge (u,v)
+	tc[u][v] = true;
+
+for(k = 1; k<= V; k++)
+    for(i = 1;i<= V; i++)
+        for(j = 1;j<= V; j++)
+            tc[i][j] ||= (tc[i][k] && tc[k][j]);
+```
+
+还有一种基于 $DFS$ 的做法 [link](http://www.cs.princeton.edu/courses/archive/spr03/cs226/lectures/digraph.4up.pdf)  (之前没有见过。。。)
+
+比如现在有节点 $(u,v)$ 连通，那么标记 $(u,v)$ 连通之后，对于 $v$ 的所有子节点 $k$，也标记 $(u,k)$ 连通。这个方法使用邻接表会方便一些。
+
+```c++
+int graphTC(Graph G){
+    for (every node in G) dfs(G, s, s); // 对于图内的所有节点
+}
+
+void dfs(Graph G, int s, int v){
+    tc[s][v] = 1;
+    for (w be v 的所有邻接节点)
+        if(tc[s][w] == 0) dfs(G, s, w);
+}
+```
+
+ 时间复杂度为 $O(VE)$。
+
+---
+
+
+
+**Topological Sorting 拓扑排序**
+
+拓扑排序在实际中的例子就是，不同事件发生是有顺序的，比如
+
+拓扑排序针对 **有向无环图**  (**DAG**,**Directed Acyclic Graph**)，满足两个性质。1.每个顶点只出现一次，2.若图中存在一条A到B的路径，那么拓扑排序中A必然出现在B的前面。
+
+根据这两个性质，尤其是第二个性质，可以很容易想到如下算法
+
+1. 找到图中**入度**为0的点作为起始顶点（因为没有通向它的路径，拓扑排序中必然最先出现）
+2. 删掉这个顶点，以及这个顶点的出边。
+3. 寻找下一个入度为0的顶点，循环1和2，直到所有顶点都被遍历到。
+
+这个方法似乎叫 “**Kahn’s algorithm for Topological Sorting**”。实现的时候，维护一个入度为0的点的集合 (或者队列)，每次随机取出一个顶点，所以可见拓扑排序并不唯一。此算法遍历了所有的顶点与所有的边，因此时间复杂度为 $O(V+E)$。
+
+还有一种使用 $DFS$ 的做法。这个做法比较神奇，之前也没有见过，不是一般意义上的深度优先，沿着有向边反向走，比如当前搜索到了点 $u$，下一步搜索 $u$ 的所有前继节点 $v$，只要还存在前继节点，就还不能把 $u$ 放进拓扑序里。
+
+```c++
+function TSDFS(node u){
+    for(all v that points to u){
+        if(v没有被删掉)
+        	TSDFS(v);
+    }
+    将u加入到拓扑序列中;
+    删除u;
+}
+```
+
+ $DFS$ 拓扑序可以从**出度**为0的顶点开始做起。 时间复杂度也是 $O(V+E)$。
+
+---
+
+
+
+**Strong Connectivity Algorithm 强连通**
+
+针对有向图，如果 $u,v$ 连通，$v,u$ 也连通，则二者强连通。对于一个强连通分量，所包含的点两两可达。如果只是需要统计图中的强连通分量的个数，则可以使用 ***并查集*** 解决。如果需要找出强连通分量的点，使用 Kosaraju 或者 Tarjan 算法。时间复杂度$O(V+E)$。
+
+---
+
+
+
+> Shortest Path 最短路
+
+**Single Source Shortest Paths 单源最短路径**
+
+给定一个源点$s$，求 $s​$ 到其他各个顶点的最短路径。
+
+经典算法 **Dijkstra Algorithm**，要求图 “没有负边” 有向或者无向。 算法步骤为
+
+1. 将顶点分为两个集合 $A$ 和 $B$，$A$ 为已经找到最短路径的顶点集合，$B$ 为等待求最短路径的集合。初始 $A = \{s\}$, $B$ 集合中所有点到源点的距离为 $inf$.
+2.  每次集合 $A$ 新加入一个点 $u$，将与 $u$ 相邻的所有点 $v$ 的距离使用 $dist(u)$ 松弛 $dist(v) = min(dist(v), dist(u) + e(u,v))$。初始情况将源点 $s$ 视为新加入的点，松弛操作为 $dist(v) = min(inf, e(s,v))$。
+3. 选取 $B$ 中最小的 $dist$ 的点加入集合 $A$
+4. 重复2.3. 直到 $B$ 为空
+
+时间复杂度，使用邻接表，不优化，外层循环所有顶点，内层循环寻找 $B$ 中最短距离的点，松弛操作经过了所有的边，因此时间复杂度为 $O(V^2+E)$。
+
+但是这个算法可以使用最小堆(heap)优化，使得找距离源点最小距离点的时间复杂度降到 $O(logN)$。如果这个图是一个稀疏图，则可以用邻接表来表示这个图，于是时间复杂度为 $O((E+V)logV)$。如果是个稠密图，比如 $E = V^2$，那么复杂度反而很高了。
+
+对于有负边的图，可以使用 **Bellman-Ford Algorithm**。算法的思想为，对所有边进行 $V-1$ 次松弛操作。进行 $V-1$ 次操作的原因是，在一个包含 $V$ 个顶点的图中，任意两点之间的最短路径最多包含 $V-1$ 条边。对于每一条边$e(u,v)$，$dist(v) = min(dist(v), dist(u) + e(u,v))$。在 $V-1$轮操作后，如果再执行一次边集的松弛操作还可以松弛，那么就说明图中含有负环。时间复杂度为 $O(VE)$。
+
+---
+
+
+
+**All-pairs shortest paths 全源最短路径**
+
+这个是单源最短路径的推广，上面两个算法可也以做，就是对每个顶点为源点做一次单源最短路径。这样Dijkstra算法时间复杂度为 $O(VE+V^2logV)$，Bellman-Ford算法时间复杂度为$O(V^2E)$。还有一个Floyd-Warshall算法，本质和求连通性的Warshall算法一样，时间复杂度为 $O(V^3)$。所以在稀疏图的时候前两个算法的复杂度低一点，但是对于稠密图，比如$E=V^2$，复杂度就比较高了。
+
+还有一点就是，Dijkstra要求图边的权值不能为负，于是有一个 **Johnson Algorithm** 通过调整权值为负的图，使之可以使用Dijkstra算法，并且re-weight后，计算出的最短路路径依然正确。
+
+比如这里有一个包含负边的图
+
+![img](/images/in-post/post-blog-neggraph.png)
+
+首先增加一个节点，连接所有的边，新边权值为0
+
+![img](/images/in-post/post-blog-Johnson.png)
+
+然后使用Bellman-ford算法 (因为有负边)，计算新增节点到其他节点的最短路径$h[i]$，使用公式 $w(u,v) = w(u,v)+(h[u] - h[v])$ 进行re-weight，然后移除新增节点，对其他节点使用Dijkstra算法。
+
+主要运行时间为Dijkstra算法的时间。
+
+对于正确性的证明，直观地解释是，re-weight之前的shortest path 在re-weight之后还是shortest path，参考这个链接[link](https://brilliant.org/wiki/johnsons-algorithm/)，也有讲到re-weight后的边都是正的。
+
+---
+
+
+
+**Shortest paths via matrix multiplication**
+
+
+
+## Graph Decompositions for Optimization
+
+**Tree Decomposition**
+
+定义可以参考 [wikipedia](https://en.wikipedia.org/wiki/Tree_decomposition)，将tree分解为若干个bags，其中bag满足如下几个性质。
+
+1. every vertex is in at least one bag 每个顶点至少包含在一个bag里
+2. every edge is included in some bag 每条边都包含在某个bag里
+3. 如果 $u\in X_w$ 并且 $u\in X_z$，那么 $u$ 在两个bag通路上的所有bag里 
+
+width of a tree decomposition 是最大的bag的大小 - 1，这里指的是某一个确定的decomposition。对于 treewide，是所有可能的decomposition中的那个最小的width。
+
+**Maximum independent set**
+
+首先，independent set 指的是，一个点集内，所有点两两之间都不相邻。寻找maximum independent set是$NP-hard$ 问题。但是在确定了tree-width的时候，变成了一个定参数问题，可以使用dp解决。
+
+例子 **The Party Problem**。邀请一些人来参加party，这些人有职位上的隶属关系，可以形成一棵树。要求不能同时邀请直接下属和上司，也就是父节点和直接子节点不能同时被选择，使得所选出来的点，总权重最大。
+
+也就是，输入为一个节点有权重的树，寻找总权重最大的independent set。
+
+Denote $T_v$ 为以 $v$ 为根的子树，$A[v]$ 为 $T_v$ 的independent set的最大权重，$B[v]$ 为 $T_v$ 不包含根节点 $v$ 的 independent set的最大权重。记 $v$ 的子节点为 $v'_1, v'_2,...,v'_k$，有
+
+$B[v] = \sum_{i=1}^kA[v'_i]$
+
+$A[v] = max(B[v], w(v)+\sum_{i=1}^kB[v'_i])$。
+

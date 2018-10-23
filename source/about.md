@@ -18,7 +18,7 @@ hidedate: true
 
 # Contact
 
-+ E-mail: i@miyunluo.com
++ E-mail: 'bWl5dW5sdW9AZm94bWFpbC5jb20='
 + WeChat: mi_yunluo
 
 # Experience
@@ -42,7 +42,6 @@ hidedate: true
 + **Tencent**, Shanghai
 
   March - April 2018
-
 
 ---
 

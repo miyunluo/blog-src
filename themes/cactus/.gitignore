@@ -1,3 +1,8 @@
 .DS_Store
-node_modules
-tmp
+.idea/
+*.log
+*.iml
+.tern-port
+yarn.lock
+package-lock.json
+node_modules/
