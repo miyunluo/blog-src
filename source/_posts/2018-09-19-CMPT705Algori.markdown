@@ -7,7 +7,19 @@ tags:
 
 > “Prof.  Leonid Chindelevitch teaches this course”
 
-## Greedy Algorithm
+[Greedy Algorithm](#01) 
+
+[Dynamic Programming](#02)
+
+[Basic Graph Algorithms](#03)
+
+[Graph Decompositions for Optimization](#04)
+
+[P, NP, NP-complete, NP-hard](#05)
+
+<p id = "01"></p>
+
+# Greedy Algorithm
 
 **找零问题**
 
@@ -19,9 +31,13 @@ tags:
 
 **Huffman Coding**
 
+<br />
 
+<br />
 
-## Dynamic Programming
+<p id = "02"></p>
+
+# Dynamic Programming
 
 **找零问题**
 
@@ -226,7 +242,13 @@ int matrixChainCost(Matrix *ms, int n) {
 
 设 $D[v_k,S]$ 表示从 $v_k$ 出发，经过集合 $S$ 中所有城市一次且仅一次，最后回到出发城市 $v_1$ 的最短路径的长度。有 $D[v_1, V-\{v_1\}] = \min\limits_{2\le k\le n}\{d_{ik} + D[v_k,V-\{v_1,v_k\}]\}$ 
 
-## Basic Graph Algorithms
+<br />
+
+<br />
+
+<p id = "03"></p>
+
+# Basic Graph Algorithms
 
 > Digraph 有向图
 
@@ -360,7 +382,13 @@ function TSDFS(node u){
 
 
 
-## Graph Decompositions for Optimization
+<br />
+
+<br />
+
+<p id = "04"></p>
+
+# Graph Decompositions for Optimization
 
 **Tree Decomposition**
 
@@ -385,4 +413,49 @@ Denote $T_v$ 为以 $v$ 为根的子树，$A[v]$ 为 $T_v$ 的independent set的
 $B[v] = \sum_{i=1}^kA[v'_i]$
 
 $A[v] = max(B[v], w(v)+\sum_{i=1}^kB[v'_i])$。
+
+<br />
+
+<br />
+
+<p id = "05"></p>
+
+# P, NP, NP-complete, NP-hard
+
+理解它们的定义可同时参考 [Matrix67 的博文](http://www.matrix67.com/blog/archives/105)
+
++ **P Problem**: 可以在polynomial时间内解决的问题
+
+  + polynomial time 比如 $O(1), O(n^2), O(log(n))$之类
+
++ **NP Problem**: （nondeterministic polynomial time）对于一个问题，没有一个已知的可以快速解决问题的算法，但是如果给出问题的一个例子，可以在polynomial时间内验证它是不是这个问题的答案。比如我可能不知道一个图怎么找到Hamilton回路[经过每个顶点一次且恰好一次（不遗漏也不重复）最后又走回来的路]，但是如果你给我一个回路，我可以很快验证它是不是Hamilton回路。
+
+  + NP的重点是，可以在多项式时间验证一个解 （或者说，可以在多项式时间猜出一个解）
+  + **P problem** 是 **NP Problem** 的一个子集（所有可以polynomial时间解决的问题肯定可以在polynomial时间内验证解）
+  + 那么就有不是NP Problem的问题。比如一个图里是否**不存在**Hamilton回路，这个问题的解就无法在多项式时间内验证，因为除非你验证了所有的回路，否则无法断定不存在。
+  + 定义NP Problem的目的是，因为通常情况，只有NP Problem可以找到多项式时间的算法，我们肯定不能指望一个连多项式时间都无法验证解的问题会有一个多项式时间的算法。
+  + 对于$P$是不是等于$NP$，目前人们普遍认为 $P=NP$ 不成立，因为在研究NP问题的时候，找到了一类非常特殊的问题 NP-complete
+
++ **Reduction 归约**：一般来说是 Polynomial-Time Reduction，问题$X$可以在polynomial-time的操作内转化到问题$Y$, 记做$X\le_P Y$，意思是，如果$Y$可以在polynomial时间内解决，那么$X$也可以，直接用$Y$的算法就可以解决$X$，否则，如果$Y$不能在polynimial时间内解决，那么$X$也不行。比如Hamilto回路可以归约为TSP(Travelling Salesman Problem)问题，在Hamilton回路中，将路径上的边权值设为0，其他边权值为1，转换到TSP问题就是，是否存在一条长为0的路径。
+
+  + $X$归约到$Y$，那么$Y$的时间复杂度$\ge X$的时间复杂度，那么不断向上归约，不断找复杂度更高但应用范围更广的算法来代替复杂度低应用范围小的算法，最后是否有可能找到一个时间复杂度最高，并且能“通吃”所有的 NP问题的这样一个超级NP问题？答案是肯定的，就是NP-complete问题。
+
++ **NP-complete**：
+
+  + 定义 1.是一个NP Problem，2.所有的NP问题可以归约到它
+  + 要证一个问题是NPC，先说明它至少是一个NP问题，然后找到一个NPC问题可以归约到它
+  + 于是需要第一个NPC问题，<u>第一个NPC问题来源于逻辑电路，可以证明所有的NP问题可以归约到它，对于NP问题来说，问题转化为了求出满足结果为True的一个输入</u>
+  + 有了第一个NPC问题，就有了一大堆NPC问题，只要做归约就可以（比如Hamilton 回路 和TSP问题都是NPC）
+
+  + 所有的NP可以归约到NPC，那么只要任意一个NPC找到了多项式时间的算法，那么所有的NP都解决了，NP也就等于P了
+
++ **NP-hard**：
+
+  + 满足NP-complete定义的第二条，但是不一定满足第一条（即不一定是NP问题）
+  + 有可能比所有的NPC的时间复杂度更高
+  + 要证明一个问题是NP-hard，一般是找一个decision problem是NP-complete（通过polynomial-time reduction到另一个NP-complete问题），那么它是NP-hard（因为general case肯定比 decision problem 更复杂，也就是 如何找到一个解比判断解是否存在要更复杂）
+
+P, NP, NP-complete, NP-hard 之间的关系如图
+
+![img](/images/in-post/post-blog-np.png)
 

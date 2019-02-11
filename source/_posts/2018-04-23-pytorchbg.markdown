@@ -7,13 +7,25 @@ tags:
 
 > “防止以后踩坑”
 
-第一眼看到pytorch就十分喜欢，就像第一眼看到golang。
+pytorch 0.4 较之前api有了很大变化
 
-pytorch 0.4 发布，api改了。。。
+## 0.0 Tensor
 
-### 0.0 Tensor and Variable
+在pytorch 0.4 中 Tensor 和 Variable 合并
 
-- **Tensor**
+Tensor可以理解为一个多维矩阵，可以使用 `.size()` 显示大小，同时也可以和 numpy.array 转换
+
+![](/images/in-post/post-blog-torch0.png)
+
+由于和Variable合并，`requires_grad` 和 `autograd` 成了 `Tensor` 的属性。
+
+`Tensor` 包含的属性，`.data` 获得Tensor的数据 `.item` 获得 Tensor的数值大小，`.grad` 获得梯度，比如
+
+![](/images/in-post/post-blog-torch1.png)
+
+现在Tensor要求导必须是 floating point dtype
+
+以及一些其他操作
 
 ```python
 # 沿行取最大值
@@ -50,75 +62,19 @@ y = torch.ones(3, 3)
 x.add_(y)	# add 进行 inplace
 ```
 
-- **Variable**
-
-  Variable 是对 tensor 的封装，每个 Variabel都有三个属性，Variable 中的 tensor本身`.data`，对应 tensor 的梯度`.grad`以及这个 Variable 是通过什么方式得到的`.grad_fn`
-
-```python
-x_tensor = torch.randn(10, 5)
-y_tensor = torch.randn(10, 5)
-
-# 将 tensor 变成 Variable
-x = Variable(x_tensor, requires_grad=True) 
-# 默认 Variable 是不需要求梯度的，所以申明需要对其进行求梯度
-y = Variable(y_tensor, requires_grad=True)
-
-z = torch.sum(x + y)
-```
-
-```python
-# 求 x 和 y 的梯度
-z.backward()
-
-print(x.grad)
-# Variable containing:
-#     1     1     1     1     1
-#     1     1     1     1     1
-#     1     1     1     1     1
-#     1     1     1     1     1
-#     1     1     1     1     1
-#     1     1     1     1     1
-#     1     1     1     1     1
-#     1     1     1     1     1
-#     1     1     1     1     1
-#     1     1     1     1     1
-# [torch.FloatTensor of size 10x5]
-
-print(y.grad) 
-```
-
-### 0.1 自动求导
+## 0.1 自动求导
 
 - **多次自动求导**
 
-  调用 backward 后自动计算一次导数，再次调用会报错，因为pytorch默认做完一次自动求导后，计算图被丢弃，两次求导需要手动设置。
+  在调用过 backward 后自动计算一次导数，但是再次调用会报错，因为pytorch默认做完一次自动求导后，计算图被丢弃，两次求导需要手动设置。
 
-```python
-x = Variable(torch.FloatTensor([3]), requires_grad=True)
-y = x * 2 + x ** 2 + 3
+![](/images/in-post/post-blog-torch2.png)
 
-y.backward(retain_graph=True)
-print(x.grad)
-# Variable containing:
-#  8
-# [torch.FloatTensor of size 1]
+y对x两次求导，第一次保留计算图，第二次不保留。第二期求导后，梯度变为两次梯度的和，也就是8.2+8.2
 
-y.backward(retain_graph=True)
-print(x.grad) 
-# 输出 16，因为做了两次自动求导，所以将第一次的梯度 8 和第二次的梯度 8 相加得到 16
 
-y.backward() # 再做一次自动求导，这次不保留计算图
-print(x.grad)
-# 输出 24
 
-y.backward() # 再做会报错，计算图已经丢弃
-```
-
-### 0.2 动态图与静态图
-
-pytorch与python的写法基本一致，没有任何额外的学习成本。tensorflow需要先定义图，然后执行，不能直接使用while，需要使用tf.while_loop，有些反直觉。
-
-### 1.0 线性模型与梯度下降
+## 1.0 线性模型与梯度下降
 
 最简单的线性模型$y=x*w+b$，计算误差函数为$\frac{1}{n}\sum^n_{i=1}(\widehat{y}_i-y_i)^2$
 
@@ -129,42 +85,25 @@ $$\frac{\partial}{\partial w}=\frac{2}{n}\sum^n_{i=1}x_i(wx_i+b-y_i)$$
 $$\frac{\partial}{\partial b}=\frac{2}{n}\sum^n_{i=1}(wx_i+b-y_i)$$
 
 ```Python
-import torch
-import numpy as np
-from torch.autograd import Variable
-torch.manual_seed(2018)
-# 读入数据 x 和 y
-
-# 读入数据 x 和 y
-x_train = np.array([...], dtype=np.float32)
-y_train = np.array([...], dtype=np.float32)
-
-# 转换成 Tensor
-x_train = torch.from_numpy(x_train)
-y_train = torch.from_numpy(y_train)
-# 定义参数 w 和 b
-w = Variable(torch.randn(1), requires_grad=True) # 随机初始化
-b = Variable(torch.zeros(1), requires_grad=True) # 使用0进行初始化
-# 构建线性回归模型
-x_train = Variable(x_train)
-y_train = Variable(y_train)
-def linear_model(x):
-    return x * w + b
-# 计算误差
-def get_loss(y_, y):
-    return torch.mean((y_ - y_train) ** 2)
-loss = get_loss(y_, y_train)
-# 自动求导
-loss.backward()
-# 查看 w 和 b 的梯度
-print(w.grad)
-print(b.grad)
-# 更新一次参数
-w.data = w.data - 1e-2 * w.grad.data
-b.data = b.data - 1e-2 * b.grad.data
+# 多次更新参数
+for e in range(10): # 进行 10 次更新
+    y_ = linear_model(x_train)
+    loss = get_loss(y_, y_train)
+    
+    w.grad.zero_() # 记得归零梯度
+    b.grad.zero_() # 记得归零梯度
+    loss.backward()
+    
+    w.data = w.data - 1e-2 * w.grad.data # 更新 w
+    b.data = b.data - 1e-2 * b.grad.data # 更新 b 
+    print('epoch: {}, loss: {}'.format(e, loss.data))
 ```
 
-### 1.1 逻辑回归
+需要注意的是，每一次求梯度的时候，需要手动设置 **梯度归零**，因为pytorch默认对梯度进行累加。（但是每次bp后都会将计算图丢弃，为什么循环里没有丢弃？）
+
+code 见 [sec1.0.py](https://github.com/miyunluo/pytorch-beginner/blob/master/basics/sec1.0.py)
+
+## 1.1 逻辑回归
 
 Logistic 回归处理的是一个分类问题 (二分类)，形式与线性回归一样，都是 $y=wx+b$，但是它使用 Sigmod 函数将结果变到 0 ~ 1 之间。对于任意输入一个数据，经过 Sigmoid 之后的结果记为 $\widehat{y}$
 
@@ -176,59 +115,28 @@ $y$ 表示真实 label，取值 {0, 1}。如果 $y$ 是 0，表示属于第一�
 
 如果 $y$ 是 1，表示属于第二类，则希望 $\widehat{y}$ 越大越好，这时 $loss$ 函数为，$loss=-(log(\widehat{y}))$，最小化 $loss$ 是最大化 $\widehat{y}$。
 
+使用 `torch.optim` 更新参数，需要配合另一个数据类型 `nn.Parameter` Parameter 默认要求梯度。
 
-
-使用 `torch.optim` 更新参数，需要配合另一个数据类型 `nn.Parameter`，本质上与 Variable 一样，但是 Parameter 默认要求梯度。pytorch 也提供了 Sigmode 函数，通过导入 `torch.nn.functional` 使用。
-
-pytorch 提供了 `nn.BCEWithLogitsLoss()`，将 sigmoid 和 loss 写在一层，有更快的速度与稳定性。所以使用它的话，就不需要再定义 Sigmod 函数了。
+pytorch 提供了 `nn.BCEWithLogitsLoss()`，将 sigmoid 和 loss 写在了一起，直接使用
 
 ```python
-# 不使用自带的loss
-import torch.nn as nn
-import torch.nn.functional as F
-w = nn.Parameter(torch.randn(2, 1))
-b = nn.Parameter(torch.zeros(1))
-# 定义sigmod
-def logistic_regression(x):
-    return F.sigmoid(torch.mm(x, w) + b)
-# 定义loss
-def binary_loss(y_pred, y):
-    logits = (y * y_pred.clamp(1e-12).log() + (1 - y) * (1 - y_pred).clamp(1e-12).log()).mean()
-    return -logits
-#- - - - - - - - - - - - - - - - - - - -
-optimizer = torch.optim.SGD([w, b], lr=1.)
-# 前向传播
-y_pred = logistic_regression(x_data)
-loss = binary_loss(y_pred, y_data) # 计算 loss
-# 反向传播
-optimizer.zero_grad() # 使用优化器将梯度归 0
-loss.backward()
-optimizer.step() # 使用优化器来更新参数
-##########################################
-
-# 使用自带的loss
-import torch.nn as nn
-criterion = nn.BCEWithLogitsLoss()
-# 使用 torch.optim 更新参数
-w = nn.Parameter(torch.randn(2, 1))
-b = nn.Parameter(torch.zeros(1))
-def logistic_reg(x):
-    return torch.mm(x, w) + b
-#- - - - - - - - - - - - - - - - - - - -
-optimizer = torch.optim.SGD([w, b], lr=1.)
-# 前向传播
-y_pred = logistic_reg(x_data)
-loss = criterion(y_pred, y_data)
-# 反向传播
-optimizer.zero_grad()
-loss.backward()
-optimizer.step()
-# 计算正确率
-mask = y_pred.ge(0.5).float()
-acc = (mask == y_data).sum().data[0] / y_data.shape[0]
+for e in range(1000):
+    # 前向传播
+    y_pred = logistic_reg(x_data)
+    loss = criterion(y_pred, y_data)
+    # 反向传播
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
 ```
 
-### 1.2 MLP, Sequential, Module
+与前面一样，每次bp之前需要梯度归零，code见 [sec1.1.py](https://github.com/miyunluo/pytorch-beginner/blob/master/basics/sec1.1.py)
+
+一般套路是 定义一个criterion，一个optimizer，然后bp的时候先optimizer.zero_grad()，然后loss.backward()，optimizer.step()
+
+
+
+## 1.2 MLP, Sequential, Module
 
 **MLP**
 
@@ -307,7 +215,7 @@ class 网络名字(nn.Module):
 l1 = 网络名字.layer1
 ```
 
-### 1.3 多分类网络
+## 1.3 多分类网络
 
 **softmax**
 
@@ -356,8 +264,67 @@ $$-\frac{1}{m}\sum^m_{i=1}(y^ilog\, sigmod(x^i)+(1-y^i)log(1-sigmod(x^i)))$$
 criterion = nn.CrossEntropyLoss()
 ```
 
-### 1.4 参数初始化
+## 1.4 参数初始化
 
-+ **使用numpy初始化**
+首先，使用Sequential构建模型，可以直接访问参数
+
+![](/images/in-post/post-blog-torch3.png)
+
+那么就可以直接从numpy赋值 来初始化参数
+
+![](/images/in-post/post-blog-torch4.png)
+
+使用
+
+```python
+net1[0].weight.data = torch.from_numpy(np.random.uniform(3, 5, size=(4, 3)))
+```
+
+初始化了第一层的权重，可以看到weight的数值发生了变化，bias没有变。
+
+要对每一个层都初始化，使用循环
+
+```python
+for layer in net1:
+    if isinstance(layer, nn.Linear): # 判断是否是线性层
+        paran_shape = layer.weight.shape
+        layer.weight.data = torch.form_numpy(np.random.normal(0, 0.5, size=param_shape))
+        # 正太分布
+```
+
+
+
+pythorch 提供了 `torch.nn.init` 用于初始化
+
+```python
+from torch.nn import init
+init.xavier_uniform(net1[0].weight)
+```
+
+Xavier初始化方式来源于一篇论文，证明使用这种初始化方法可以使得每层的输出方差尽可能相等
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
