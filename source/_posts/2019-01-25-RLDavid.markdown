@@ -1,0 +1,200 @@
+---
+layout:     post
+title:      "Reinforcement Learning"
+tags:
+    - RL
+---
+
+> by David Silver 
+
+### 0. Markov Dicison Process
+
++ MDP is a tuple $<S,A,P,R,\gamma>$
+
+$S$ is states set, $A$ is action set, $P$ is transition probability matrix, $R$ is reward function, $\gamma$ is discount factor.
+
++ Value function is 
+
+![img](/images/in-post/post-blog-mdp_vf.png)
+
++ Emulation (try Student MDP example given on David's MDP slides)
+
+![img](/images/in-post/post-blog-student_mdp.png)
+
++ Code is `/Funny_Tools_and_Demo/MDP/mdp.py`  using python3. (on github)
+
++ Results
+
+```
+v(FB): -2.318673
+v(C1): -1.325513
+v(C2): 2.699597
+v(C3): 7.363954
+v(Sleep): 0.000000
+```
+
+### 1. Model Based Learning
+
+Know the mdp behand. Try to find the optimal policy. Two approach: Policy Iteration and Value Iteration.
+
+#### 1.1 Policy Iteration
+
++ First, **Policy Evaluation**. Initialize a policy, calculate value for each state under this policy.
+  + Using Bellman Equation in Section 0.
++ Second, **Policy Improvement**. If value becomes bigger taking another action, update the policy.
+
+#### 1.2 Value Iteration
+
+Calculate the value based on the next step, compare all the possible actions and choose the best one based on the current situation.
+
+#### 1.3 Emulation
+
++ Choose from David's MDP slides
+
+![img](/images/in-post/post-blog-student_optpolicy.png)
+
++ Code is `/Funny_Tools_and_Demo/MDP/policy_iter.py` and `/Funny_Tools_and_Demo/MDP/value_iter.py`
+
+
+
+### 2. Model Free Prediction
+
+We do not konw the transition probability and reward function in MDP, and we want to calculate the state values.
+
+#### 2.1 Monte-Carlo Learning
+
+Get samples
+
+$s_1,a_1,r_1,...,s_k,a_k,r_k\sim\pi$
+
+First visit or every visit state $s$
+
+$g_s=r_t+\gamma%20r_{t+1}+...+\gamma^{k-t}r_k$
+
+Refresh value
+
+$S(s)=S(s)+g_s$
+
+$N(s)=N(s)+1$
+
+$v(s)=\frac{S(s)}{N(s)}$
+
+Code
+
+```python
+### state_sample, action_sample, reward_sample contains several lists, each list is a sample
+def mc(gamma, state_sample, action_sample, reward_sample):
+    vfunc = dict()
+    nfunc = dict()
+    for s in states:
+        vfunc[s] = 0.0
+        nfunc[s] = 0.0
+        
+    for iter in range(len(state_sample)):
+        G = 0.0
+        for step in range(len(state_sample[iter])-1,  -1,  -1):
+            G *= gamma
+            G += reward_sample[iter][step]
+            
+        for step in range(len(state_sample[iter])):
+            s = state_sample[iter][step]
+            vfunc[s] += G
+            nfunc[s] += 1.0
+            G -= reward_sample[iter][step]
+            G /= gamma
+    for s in states:
+        if nfunc[s] > 0.000001:
+            vfunc[s] /= nfunc[s]
+```
+
+#### 2.2 Temporal-Difference Learning
+
+Do not need to reach the end of the MDP chain. Renew value at each step.
+
+$v(s)=v(s)+\alpha(r+\gamma v(s')-v(s))$
+
+Code
+
+```python
+def td(alpha, gamma, state_sample, action_sample, reward_sample):
+    vfunc = dict()
+    for s in states:
+        vfunc[s] = 0.0
+        
+        for iter in range(len(state_sample)):
+            for step in range(len(state_sample[iter])):
+                s = state_sample[iter][step]
+                r = reward_sample[iter][step]
+                if step < ( len(state_sample[iter]) - 1 ):
+                    next_s = state_sample[iter][step+1]
+                    next_v = vfunc[next_s]
+                else:
+                    next_v = 0.0
+                vfunc[s] += alpha * (r + gamma*next_v - vfunc[s])
+```
+
+
+
+### 3. Model Free Control
+
+MDP is unknown and we want to find the optimal policy.
+
+#### 3.1 MC Control
+
+Keep value of $q(s,a)$ and visit time $n(s,a)$, use samples to update value
+
+$q(s,a)=\frac{q(s,a)*n(s,a)+g}{n(s,a)+1}$
+
+$n(s,a)=n(s,a)+1$
+
+where $g=r_t+\gamma%20r_{t+1}+...$
+
+>  GLIE (Greddy in LImit with Infinite Exploration)
+>
+> + All state-action pairs are explored infinitely many times
+> + The policy converges on a greddy polic
+
++ Theorem
+
+GLIE Monte-Carlo control converges to the optimal action-value function
+
+#### 3.2 Sarsa
+
+State Action Reward State Action (Sarsa). It is like TD, but works on $q(s,a)$ function.
+
+$q(s,a)=q(s,a)+\alpha(r+\gamma q(s',a')-q(s,a))$
+
+$s$ is the current state, $a$ is the current action, $s'$ is the next state, $a'$ is the next action, $r$ is the reward, $\alpha$ is the learning rate.
+
++ Theorem
+
+Sarse converges to the optimal action-value function under the conditions:
+
+1. GLIE sequence of policies
+2. Robbind-Monro sequence of step-sizes
+
+#### 3.3 Q-Learning
+
+Quite similar but different from Sarsa
+
+$q(s,a)=q(s,a)+\alpha(r+\gamma max q(s',a')-q(s,a))$
+
++ Theorem
+
+Q-Learning control converges to the optimal action-value function.
+
+
+
+### 4. Value Function Approximation
+
+In real problem, state space is very large and can not go through all states. Extract features to handle this issue. Extrac feature !$\hat{s})$for state $s$ , the q function is $q(\hat{s},a)$, define a parameter $w$ 
+
+We want to learn the $q(\hat{s},a,w)$ to be as close to optiaml $q(s,a)$, which means to learn $w$.
+
+However the optimal $q$ is unknow, use the estimated $q$ instead, three way
+
+$qfunc=g_t MC$
+
+$qfunc=r+\gamma q(\hat{s},a) SARSA$
+
+$qfunc=r+max \gamma q(\hat{s'},a) QLearning$

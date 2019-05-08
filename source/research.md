@@ -30,14 +30,8 @@ hidedate: true
 
 ## Others ##
 
-+ Image super-resolution using Convolutional Neural Network
-
-  Shrinking -> mapping -> expanding, peak signal to noise ratio 29.4
-
 + Automatic Video Portrait Segmentation
 
   [Demo(orig)](/images/blog-portraitdemo0.gif) [Demo(segm)](/images/blog-portraitdemo1.gif)
 
-+ SmallC compiler
 
-  A compiler for a simplified C-liked language named Small-C [link](https://github.com/miyunluo/SmallC_Compiler)
