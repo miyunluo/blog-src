@@ -15,13 +15,13 @@ pytorch 0.4 较之前api有了很大变化
 
 Tensor可以理解为一个多维矩阵，可以使用 `.size()` 显示大小，同时也可以和 numpy.array 转换
 
-![](/blog/images/in-post/post-blog-torch0.png)
+![](/images/in-post/post-blog-torch0.png)
 
 由于和Variable合并，`requires_grad` 和 `autograd` 成了 `Tensor` 的属性。
 
 `Tensor` 包含的属性，`.data` 获得Tensor的数据 `.item` 获得 Tensor的数值大小，`.grad` 获得梯度，比如
 
-![](/blog/images/in-post/post-blog-torch1.png)
+![](/images/in-post/post-blog-torch1.png)
 
 现在Tensor要求导必须是 floating point dtype
 
@@ -68,7 +68,7 @@ x.add_(y)	# add 进行 inplace
 
   在调用过 backward 后自动计算一次导数，但是再次调用会报错，因为pytorch默认做完一次自动求导后，计算图被丢弃，两次求导需要手动设置。
 
-![](/blog/images/in-post/post-blog-torch2.png)
+![](/images/in-post/post-blog-torch2.png)
 
 y对x两次求导，第一次保留计算图，第二次不保留。第二期求导后，梯度变为两次梯度的和，也就是8.2+8.2
 
@@ -268,11 +268,11 @@ criterion = nn.CrossEntropyLoss()
 
 首先，使用Sequential构建模型，可以直接访问参数
 
-![](/blog/images/in-post/post-blog-torch3.png)
+![](/images/in-post/post-blog-torch3.png)
 
 那么就可以直接从numpy赋值 来初始化参数
 
-![](/blog/images/in-post/post-blog-torch4.png)
+![](/images/in-post/post-blog-torch4.png)
 
 使用
 

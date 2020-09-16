@@ -71,7 +71,7 @@ MK-MMD means multiple kernel variant of MMD and it minimize Type two error.
 
 ### Model(DAN)
 
-![img](/blog/images/in-post/post-blog-DANmdoel.png)
+![img](/images/in-post/post-blog-DANmdoel.png)
 
 The basic architecture is **AlexNet**, which is comprised of five convolutional layers (conv1-conv5) and three fully connected layers (fc6-fc8). The output layer is softmax.
 

@@ -18,6 +18,7 @@ tags:
 [P, NP, NP-complete, NP-hard](#05)
 
 <p id = "01"></p>
+
 # Greedy Algorithm
 
 **找零问题**
@@ -35,6 +36,7 @@ tags:
 <br />
 
 <p id = "02"></p>
+
 # Dynamic Programming
 
 **找零问题**
@@ -47,7 +49,7 @@ tags:
 
 使用 $D[i,j]$ 表示使用前 `i` 个物品，最大 `j` 容量获得的最大价值，状态转移方程为
 
-![img](/blog/images/in-post/post-blog-0-1bag.png)
+![img](/images/in-post/post-blog-0-1bag.png)
 
 code
 
@@ -119,7 +121,7 @@ dp只可以得到最大的价值是多大，如果需要知道方案的具体内
 
 两个字符串 $s$ 和 $t$，使用 $L[i,j]$ 表示 $s$ 的前 $i$ 个字符与 $t$ 的前 $j$ 个字符的最长公共子序列的长度，状态转移方程为
 
-![img](/blog/images/in-post/post-blog-lcsubseq.png)
+![img](/images/in-post/post-blog-lcsubseq.png)
 
 ```c++
 #include<string>
@@ -157,11 +159,11 @@ int main(){
 
 最长公共子串。使用 $L[i,j]$  表示 $S_{1:i}$ 与 $T_{1:j}$ 的最长公共子串。转移方程为 
 
-![img](/blog/images/in-post/post-blog-lcsubstr.png)
+![img](/images/in-post/post-blog-lcsubstr.png)
 
 这个方程的意思其实就是匹配两个字符串，每次使得 $S[i]==T[j]$，也就是 $S$ 与 $T$ 匹配了一部分而且以 $S[i]$ 或者 $T[j]$ 结尾，否则值为0，认为匹配中断。
 
-![img](/blog/images/in-post/post-blog-lcsubstrmatch.png)
+![img](/images/in-post/post-blog-lcsubstrmatch.png)
 
 ```c++
 int LongestCommonSubstring(string s1, string s2)
@@ -200,7 +202,7 @@ int LongestCommonSubstring(string s1, string s2)
 
 记$C[i,j]$ 为$A_iA_{i+1}...A_{j-1}A_j$ 的最优解，转换方程为
 
-![img](/blog/images/in-post/post-blog-matrixmul.png)
+![img](/images/in-post/post-blog-matrixmul.png)
 
 ```c++
 #include <iostream>
@@ -245,6 +247,7 @@ int matrixChainCost(Matrix *ms, int n) {
 <br />
 
 <p id = "03"></p>
+
 # Basic Graph Algorithms
 
 > Digraph 有向图
@@ -332,7 +335,7 @@ function TSDFS(node u){
 
 **Single Source Shortest Paths 单源最短路径**
 
-给定一个源点$s$，求 $s$ 到其他各个顶点的最短路径。
+给定一个源点$s$，求 $s​$ 到其他各个顶点的最短路径。
 
 经典算法 **Dijkstra Algorithm**，要求图 “没有负边” 有向或者无向。 算法步骤为
 
@@ -359,11 +362,11 @@ function TSDFS(node u){
 
 比如这里有一个包含负边的图
 
-![img](/blog/images/in-post/post-blog-neggraph.png)
+![img](/images/in-post/post-blog-neggraph.png)
 
 首先增加一个节点，连接所有的边，新边权值为0
 
-![img](/blog/images/in-post/post-blog-Johnson.png)
+![img](/images/in-post/post-blog-Johnson.png)
 
 然后使用Bellman-ford算法 (因为有负边)，计算新增节点到其他节点的最短路径$h[i]$，使用公式 $w(u,v) = w(u,v)+(h[u] - h[v])$ 进行re-weight，然后移除新增节点，对其他节点使用Dijkstra算法。
 
@@ -384,6 +387,7 @@ function TSDFS(node u){
 <br />
 
 <p id = "04"></p>
+
 # Graph Decompositions for Optimization
 
 **Tree Decomposition**
@@ -415,6 +419,7 @@ $A[v] = max(B[v], w(v)+\sum_{i=1}^kB[v'_i])$。
 <br />
 
 <p id = "05"></p>
+
 # P, NP, NP-complete, NP-hard
 
 理解它们的定义可同时参考 [Matrix67 的博文](http://www.matrix67.com/blog/archives/105)
@@ -452,5 +457,5 @@ $A[v] = max(B[v], w(v)+\sum_{i=1}^kB[v'_i])$。
 
 P, NP, NP-complete, NP-hard 之间的关系如图
 
-![img](/blog/images/in-post/post-blog-np.png)
+![img](/images/in-post/post-blog-np.png)
 

@@ -16,8 +16,6 @@ direction: ltr
 nav:
   home: /
   articles: /archives/
-  Research: /research/
-  about: /about/
 
 
 # Links to your social media accounts.
@@ -26,11 +24,11 @@ nav:
 # only 'mail' is an exception.
 social_links:
   github: https://github.com/miyunluo
-  weibo: https://weibo.com/u/6465095643
+  #weibo: 
   #twitter: /
-  facebook: https://www.facebook.com/yudong.luo.77
+  #facebook: 
   linkedin: https://www.linkedin.com/in/yu-dong-luo-907a28139/
-  #mail: mailto:i@miyunluo.com
+  #mail: mailto:
 
 
 # Customize the overview with the most recent blog posts on the index page.

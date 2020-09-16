@@ -72,11 +72,11 @@ tags:
 
 以163邮箱为例，smtp在 设置->POP3/SMTP/IMAP 选项下。
 
-![img](/blog/images/in-post/post-blog-POP3SMTPIMAP.png)
+![img](/images/in-post/post-blog-POP3SMTPIMAP.png)
 
 初次开启，会要求设置授权码，此授权码就是之后使用smtp协议发邮件时的密码，注意与邮箱登录密码区别。
 
-![img](/blog/images/in-post/post-blog-AuthCode.png)
+![img](/images/in-post/post-blog-AuthCode.png)
 
 QQ邮箱开启方法类似。
 
@@ -324,7 +324,7 @@ function sendWeather(){
 
 ## 最终效果
 
-![img](/blog/images/in-post/post-blog-WeatherEmail.jpg)
+![img](/images/in-post/post-blog-WeatherEmail.jpg)
 
 ## 最后
 

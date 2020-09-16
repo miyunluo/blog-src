@@ -31,7 +31,7 @@ The assumption of learning domain invariant features is that, if the features on
 
 The framework in this paper is as follow.
 
-![img](/blog/images/in-post/post-blog-domainadp.png)
+![img](/images/in-post/post-blog-domainadp.png)
 
 The framework consists of three parts, a deep feature extractor (green), a deep label predictor (blue) and a domain classifier (red). Feature extractor extract features, usually has convolutional layers and pooling layers. Label predictor is fully connected layers plus logistical classifier. Domain classifier is fully connected layers plus cross entropy classifier.
 
@@ -43,7 +43,7 @@ At training time, seek $\theta_f$ that ***maximize*** the loss of the <u>domain 
 
 Then the parameters can be updated with backpropagation.
 
-![img](/blog/images/in-post/post-blog-backpropfyd.png)
+![img](/images/in-post/post-blog-backpropfyd.png)
 
 $\mu$ is the learning rate, and the factor $\lambda$ is important according to author, otherwise the domain classifier loss will be minimized.
 

@@ -1,0 +1,101 @@
+---
+layout:     post
+title:      "Variational Inference"
+tags:
+    - RL
+---
+
+> Refers to Sergey Levine's slides
+
+### Latent variable models
+
+$p(x)=\sum_zp(x|z)p(z)$
+
+$p(x)=\int p(x|z)p(z)dz$
+
+$z$ is a latent variable not observed from data directly.
+
+### How to train latent variable model
+
+model: $p_{\theta}(x)$
+
+data: $D=\{x_1, x_2, ...,x_N\}$
+
+maximum likelihood: $\theta \leftarrow \arg\max_{\theta}\frac{1}{N}\sum_i\log p_{\theta}(x_i)$ , and $p(x)=\int p(x|z)p(z)dz$
+
+$\theta\leftarrow \arg\max_{\theta}\frac{1}{N}\sum_i\log[\int p_{\theta}(x_i|z)p(z)dz]$
+
+But we don't know what $z$ is, an alternative is to compute expected log-likelihood.
+
+$\theta\leftarrow \arg\max_{\theta}\frac{1}{N}\sum_i\mathbb{E}_{z\sim p(z|x_i)}[\log p_{\theta}(x_i,z)]$
+
+Intuition: "guess" most likely $z$ given $x_i$ , and pretend it is the right one.
+
+### Variational approximation
+
+So here comes the question, how to calculate $p(z|x_i)$ , could use a simple distribution to approximate, $q_i(z)=\mathcal{N}(\mu_i,\sigma_i)$.
+
+This $q_i(z)$ can be used to bound $\log p(x_i)$
+
+$\log p(x_i)=\log\int_zp(x_i|z)p(z)=\log\int_zp(x_i|z)p(z)\frac{q_i(z)}{q_i(z)}=\log\mathbb{E}_{z\sim q_i(z)}[\frac{p(x_i|z)p(z)}{q_i(z)}]$
+
+Use Jensen's inequality, $\log \mathbb{E}[y]\ge \mathbb{E}[\log y]$
+
+$\ge \mathbb{E}_{z\sim q_i(z)}[\log \frac{p(x_i|z)p(z)}{q_i(z)}]=\mathbb{E}_{z\sim q_i(z)}[\log p(x_i|z)+\log p(z)]-\mathbb{E}_{z\sim q_i(z)}[\log q_i(z)]=\mathbb{E}_{z\sim q_i(z)}[\log p(x_i|z)+\log p(z)]+\mathcal{H}(q_i)$
+
+Entropy: $\mathcal{H}(p)=-\mathbb{E}_{x\sim p(x)}[\log p(x)]=-\int_x p(x)\log p(x)dx$ , measures how random is the random variable.
+
+Then we maximize this lower bound will maximize $\log p(x_i)$.
+
+### KL-Divergence
+
+We get $\log p(x_i)\ge \mathbb{E}_{z\sim q_i(z)}[\log p(x_i|z)+\log p(z)]+\mathcal{H}(q_i)$, define this lower bound as $\mathcal{L}_i(p,q_i)$
+
+$\mathcal{L}_i(p,q_i)$ has relationship with $D_{KL}(q_i(z)||p(z|x_i))$
+
+$D_{KL}(q_i(z)||p(z|x_i))=\mathbb{E}_{z\sim q_i(z)}[\log \frac{q_i(z)}{p(z|x_i)}]=\mathbb{E}_{z\sim q_i(z)}[\log\frac{q_i(z)p(x_i)}{p(x_i,z)}]$ , where $p(x_i,z)=p(x_i|z)p(z)$
+
+$=-\mathbb{E}_{z\sim q_i(z)}[\log p(x_i|z)+\log p(z)]+\mathbb{E}_{z\sim q_i(z)}[\log q_i(z)]+\mathbb{E}_{z\sim q_i(z)}[\log p(x_i)]$
+
+$=-\mathcal{L}_i(p,q_i)+\log p(x_i)$
+
+$\mathcal{L}_i(p,q_i) = -D_{KL}(q_i(z)||p(z|x_i))+\log p(x_i)$ , maximize this lower bound means minimize the KL-divergence between $q_i(z)$ with the true distribution $p(z|x_i)$  .
+
+$\theta \leftarrow \arg\max_\theta\frac{1}{N}\sum_i\mathcal{L}_i(p,q_i) $
+
+for each $x_i$ :
+
+​		calculate $\nabla_\theta\mathcal{L}_i(p,q_i)$: sample $z\sim q_i(z) ,\nabla_\theta\mathcal{L}_i(p,q_i)\approx\nabla_\theta\log p_\theta(x_i|z)$
+
+​		$\theta\leftarrow \theta + \alpha\nabla_\theta\mathcal{L}_i(p,q_i)$
+
+​		update $q_i$ to maximize $\mathcal{L}_i(p,q_i)$ [suppose $q_i(z)=\mathcal{N}(\mu_i,\sigma_i)$, gradient ascent on $\mu_i,\sigma_i$]
+
+Problme is the there are too many parameters to train !
+
+### Amortized variational inference
+
+What if we just learn a network $q_i(z)=q(z|x_i)\approx p(z|x_i)$
+
+There is a network for $p_\theta(x_i|z)$ , and one for $q_\phi(z|x_i)=\mathcal{N}(\mu_\phi(x_i),\sigma_\phi(x_i))$
+
+for each $x_i$ :
+
+​		calculate $\nabla_\theta\mathcal{L}_i(p_{\theta}(x_i|z),q_{\phi}(z|x_i))$ : sample $z\sim q_\phi(z|x_i),\nabla_\theta\mathcal{L}\approx\nabla_\theta\log p_\theta(x_i|z)$
+
+​		$\theta\leftarrow \theta+\alpha\nabla_\theta\mathcal{L}$
+
+​		$\phi\leftarrow \phi + \alpha\nabla_\phi\mathcal{L}$
+
+To better calculate $\phi\leftarrow \phi + \alpha\nabla_\phi\mathcal{L}$ , there is a reparameterization trick
+
+$J(\phi)=\mathbb{E}_{z\sim q_{\phi}(z|x_i)}[r(x_i,z)]=\mathbb{E}_{\epsilon\sim\mathcal{N}(0,1)}[r(x_i,\mu_{\phi}(x_i)+\epsilon\sigma_{\phi}(x_i))]$
+
+To calculate $\nabla_{\phi}J(\phi)$, just need to sample $\epsilon_1,...,\epsilon_M$ from $\mathcal{N}(0,1)$ (a single sample is ok)
+
+$\nabla_{\phi}J(\phi)\approx \frac{1}{M}\sum_j\nabla_\phi r(x_i,\mu_{\phi}(x_i)+\epsilon\sigma_{\phi}(x_i))$
+
+
+
+When using TensorFlow or pyTorch software, these frameworks are usually designed to minimize a loss function. In this case, we minimize $-\mathcal{L}_i$ , which equals to minimize KL-divergence loss plus reconstruction loss.
+

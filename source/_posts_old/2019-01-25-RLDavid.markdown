@@ -15,11 +15,11 @@ $S$ is states set, $A$ is action set, $P$ is transition probability matrix, $R$ 
 
 + Value function is 
 
-![img](/blog/images/in-post/post-blog-mdp_vf.png)
+![img](/images/in-post/post-blog-mdp_vf.png)
 
 + Emulation (try Student MDP example given on David's MDP slides)
 
-![img](/blog/images/in-post/post-blog-student_mdp.png)
+![img](/images/in-post/post-blog-student_mdp.png)
 
 + Code is `/Funny_Tools_and_Demo/MDP/mdp.py`  using python3. (on github)
 
@@ -51,7 +51,7 @@ Calculate the value based on the next step, compare all the possible actions and
 
 + Choose from David's MDP slides
 
-![img](/blog/images/in-post/post-blog-student_optpolicy.png)
+![img](/images/in-post/post-blog-student_optpolicy.png)
 
 + Code is `/Funny_Tools_and_Demo/MDP/policy_iter.py` and `/Funny_Tools_and_Demo/MDP/value_iter.py`
 

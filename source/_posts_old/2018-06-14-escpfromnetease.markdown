@@ -84,7 +84,7 @@ if __name__ == '__main__':
 
 从 `uc!` 文件获得了《君の名は》专辑的flac文件。
 
-![img](/blog/images/in-post/post-blog-kimino.png)
+![img](/images/in-post/post-blog-kimino.png)
 
 ## Src
 

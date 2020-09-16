@@ -86,11 +86,11 @@ $$T(n)=8n$$
 
 我们将这个数组以五个数为一组进行划分并排序，得到
 
-![img](/blog/images/in-post/post-blog-5itemarray1.png)
+![img](/images/in-post/post-blog-5itemarray1.png)
 
 然后，我们以每组中位数的大小进行排序，得到
 
-![img](/blog/images/in-post/post-blog-5itemarray2.png)
+![img](/images/in-post/post-blog-5itemarray2.png)
 
 从图中可以看出，这些中位数的中位数是56，而且经过这些操作，上图黄色底色位置的数可以被确定大于56，计算一下黄色底色的个数，不算**中位数的中位数** 56 所在的列和不足5个的列（在本例中，不足5个数的列恰在左边，当然它很可能出现在右边），则其个数至少为
 

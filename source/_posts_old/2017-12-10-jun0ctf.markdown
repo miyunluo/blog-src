@@ -52,23 +52,23 @@ a = base64.b64decode(s)
 
 之后使用wireshark打开，通信包有很多，过滤一下http请求，发现只有3个
 
-![img](/blog/images/in-post/post-blog-jserv8.png)
+![img](/images/in-post/post-blog-jserv8.png)
 
 选择“文件” -> "导出对象" -> “HTTP”将其导出，得到三个文件。
 
-![img](/blog/images/in-post/post-blog-jserv0.png)
+![img](/images/in-post/post-blog-jserv0.png)
 
 其中upload.php很大，有1.9M，以二进制打开，发现文件里有flag1.png，同时有一个zip文件标志头信息504B 0304。
 
-![img](/blog/images/in-post/post-blog-j0serv1.png)
+![img](/images/in-post/post-blog-j0serv1.png)
 
 将前面不重要的部分删去，得到的文件更改后缀名为zip解压，得到一张图（还挺好看的 (●ﾟωﾟ●)。
 
-![img](/blog/images/in-post/post-blog-jserv2.png)
+![img](/images/in-post/post-blog-jserv2.png)
 
 这里一般的套路是会在图片里隐写信息，将图片以二进制打开，因为文件比较大，在中间寻找flag较困难，考虑到简单的隐写一般在文件结尾处，直接去文件尾查询，得到了flag。
 
-![img](/blog/images/in-post/post-blog-jserv3.png)
+![img](/images/in-post/post-blog-jserv3.png)
 
 <p id = "j3"></p>
 ### 3.AES-server 100
@@ -125,7 +125,7 @@ if __name__ == "__main__":
 
 代码里显示**AES.MODE_CBC**，说明采用的是CBC(密文分组链接)模式，且代码为CBC的解密过程，CBC decryption见下图
 
-![img](/blog/images/in-post/post-blog-jserv9.png)
+![img](/images/in-post/post-blog-jserv9.png)
 
 代码内容只涉及了一组CBC的解密。要求输入初始向量iv与加密字符c的拼接串，同时服务器会返回解密后的明文p。数据关系为 p = XOR( iv, fk(c) )，题目显示需要得到的p前5位为“admin”才会返回flag。
 
@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
 这里构造iv0, c0为全0字节，admin后面也以0补齐，具体过程见下图。（由此可见异或运算的问题还是挺大的，但是异或在加密中广为应用。
 
-![img](/blog/images/in-post/post-blog-jserv4.png)
+![img](/images/in-post/post-blog-jserv4.png)
 
 ```shell
 >>nc 202.121.178.199 9999
@@ -166,7 +166,7 @@ e = long(pub.e)
 
 这个公钥的问题出在n选择太小，直接暴力破解质因数，这里可以去[[factordb](http://www.factordb.com)]网站查询，也可以用python的包进行破解。(最开始是用python暴力破的，后来发现可以查询到)
 
-![img](/blog/images/in-post/post-blog-j0serv7.png)
+![img](/images/in-post/post-blog-j0serv7.png)
 
 在质因子p，q都得到的情况下，后面就是顺水推舟的求私钥d，解明文p了。
 
@@ -192,7 +192,7 @@ e = long(pub.e)
 
 （来自dusmart大大）此题感觉比较复杂，需要详细说明一下，但是很多人很早就做了出来，不知道用的什么方法。链接点进去是如下界面
 
-![img](/blog/images/in-post/post-blog-jserv6.png)
+![img](/images/in-post/post-blog-jserv6.png)
 
 第一次访问会设置一个名为“hmac"的cookie，之后要求以POST的方式提交username与password，其中username字段必须为“admin”，password字段不能为“admin”，但是要求hamc与md5(" $secret\|$username\|$password")相等。
 
@@ -217,7 +217,7 @@ e = long(pub.e)
 
       *Hmd5表示md5中的每个分组的哈希操作，其输入为初始向量和512bit的待哈希分组，输出为128bit*
 
-![md5](/blog/images/in-post/post-blog-jserv10.png)
+![md5](/images/in-post/post-blog-jserv10.png)
 
 2. 然后了解消息填充的具体过程
 
@@ -288,7 +288,7 @@ else:
 
 这个看代码是典型的Feistel加密，Feistel结构如下，每轮涉及异或与互换，解密就是把过程逆回去。
 
-![img](/blog/images/in-post/post-blog-jserv11.png)
+![img](/images/in-post/post-blog-jserv11.png)
 
 ```python
 from hashlib import md5
@@ -314,19 +314,19 @@ print(flag)
 
 逆向题目，链接为[[encoder.zip](https://ctf.0ops.sjtu.cn/attachment/download/encoder.zip)]，解压后一个名为encoder的可执行文件，一个加密后的flag"KNByeN88KqslM52E1L67aYREK1qQ2N1QydYlaEd="。执行encoder，发现就是一个加密算法，输入明文，返回密文。那么解题思路就是找到上述密文对应的明文就是flag。
 
-![img](/blog/images/in-post/post-blog-jserv12.png)
+![img](/images/in-post/post-blog-jserv12.png)
 
 使用IDA打开encoder进行分析。`main`函数如下，主要调用了`sub_4006D6()`这个函数
 
-![img](/blog/images/in-post/post-blog-jserv13.png)
+![img](/images/in-post/post-blog-jserv13.png)
 
 函数`sub_4006D6()`内容如下，是主要的加密过程
 
-![img](/blog/images/in-post/post-blog-jserv14.png)
+![img](/images/in-post/post-blog-jserv14.png)
 
 在函数`sub_4006D6()`内使用了两个数组（上图红线部分），数组内容如下。注意`byte_601080[]`第一位为`61h`是字符a，所以数组内容为`'afe7WlyVd12XKLhnqvzQb5B6sNR8gYME'`，解题过程中就遇到了所给密文中有a，而找不到a在哪里的尴尬局面。
 
-![img](/blog/images/in-post/post-blog-jserv15.png)
+![img](/images/in-post/post-blog-jserv15.png)
 
 反编译出的c代码的问题是变量名不易于理解，需要先来理解`sub_4006D6()`的主要过程。main函数中变量`s`为输入字符串的地址，变量`v6`为字符串的长度。于是可以得到`shb_4006D6()`函数中变量`a1`为字符串起始地址，`a2`为字符串长度。接下来`malloc()`函数分配空间，应该是给密文分配空间的，从`8*(len/5+1)+1`可以看出算法是分组加密，每5个字符加密出8个字符。`v7`是将输入字符的一个分组取出来，重点在到`v9[] = byte_601080[v7 & 0x1F]`也就是取`v7`的后5位去`byte_601080[]`中查询一个字符出来反向放置作为加密结果。对于不满足5位的情况在，算法会在后面补上“=”。下面给出一个修改过变量名的版本，易于理解。
 
@@ -411,25 +411,25 @@ print("".join(decode("KNByeN88")+decode("KqslM52E")+decode("1L67aYRE")+decode("K
 
 题目内容为“nc 202.121.178.181 12321”与一个下载链接[[stack_55a49bdfcdafd0c31657649e905486a4](https://ctf.0ops.sjtu.cn/attachment/download/stack)]，得到一个名为stack的二进制文件。使用strings指令查看一下内部字符内容
 
-![img](/blog/images/in-post/post-blog-jserv16.png)
+![img](/images/in-post/post-blog-jserv16.png)
 
 可以看到Shell Gotten与三个问题。执行nc指令
 
-![img](/blog/images/in-post/post-blog-jserv17.png)
+![img](/images/in-post/post-blog-jserv17.png)
 
 需要回答的问题与文件中的内容一致，但是之后还需要输入内容。根据上文的Sell Gotten，显然这里我们需要得到shell的控制权，再根据题目名字stack，考虑为栈溢出问题。
 
 使用IDA-win32打开，main函数的主体是work函数，work函数如下，就是之前要回答的三个问题。
 
-![img](/blog/images/in-post/post-blog-jserv18.png)
+![img](/images/in-post/post-blog-jserv18.png)
 
 还有一个没有用到的函数getshell()
 
-![img](/blog/images/in-post/post-blog-jserv19.png)
+![img](/images/in-post/post-blog-jserv19.png)
 
 只需要程序的返回地址为getshell()的地址，就会触发执行了。查询得到getshell的起始地址为0804 85cb
 
-![img](/blog/images/in-post/post-blog-jserv20.png)
+![img](/images/in-post/post-blog-jserv20.png)
 
 栈溢出的原理可以参考链接[[栈溢出](https://ctf-wiki.github.io/ctf-wiki/pwn/stackoverflow/stackoverflow_basic.html)]
 
@@ -450,10 +450,10 @@ io.interact()
 ```
 
 运行代码
-![img](/blog/images/in-post/post-blog-jserv21.png)
+![img](/images/in-post/post-blog-jserv21.png)
 
 cd 进入 /home/.../stack 目录，cat 显示flag。
-![img](/blog/images/in-post/post-blog-jserv22.png)
+![img](/images/in-post/post-blog-jserv22.png)
 
 ## Have Idea
 
@@ -499,4 +499,4 @@ if __name__ == '__main__':
 
 PHP是世界上最好的语言。
 
-![img](/blog/images/in-post/post-blog-j0serv8.gif)
+![img](/images/in-post/post-blog-j0serv8.gif)

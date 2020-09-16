@@ -270,7 +270,7 @@ public class SearchFiles {
 
 ### 运行效果
 
-![img](/blog/images/in-post/post-blog-Lucene.png)
+![img](/images/in-post/post-blog-Lucene.png)
 
 ### 完整src见[Github](https://github.com/miyunluo/Lucene6.1-demo)
 

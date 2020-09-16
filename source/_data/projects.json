@@ -8,5 +8,10 @@
        "name":"Cm5sclock",
        "url":"http://cmsclock.miyunluo.com",
        "desc":"桜の花の落ちるスピード。秒速5センチメートル"
-    }
+    },
+    {
+      "name":"Pics",
+      "url":"http://miyunluo.com/pics",
+      "desc":"Random shoot"
+   }
 ]

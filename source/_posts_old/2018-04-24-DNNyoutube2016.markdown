@@ -21,7 +21,7 @@ $$P(w_t=i|U,C)=\frac{e^{v_iu}}{\sum_{j\in V}e^{v_ju}}$$
 
 上式为一个softmax，$u\in R^N$是<用户，上下文>的高位embedding，$v_j\in R^N$是视频$j$的embedding。DNN需要做的，就是学习<用户，上下文>的高位embedding，$u$.
 
-![img](/blog/images/in-post/post-blog-DNNytbmatch.png)
+![img](/images/in-post/post-blog-DNNytbmatch.png)
 
 ### Feature
 
@@ -39,7 +39,7 @@ $$P(w_t=i|U,C)=\frac{e^{v_iu}}{\sum_{j\in V}e^{v_ju}}$$
 
 Ranking 的模型与 cadidate generation的基本一致，不同之处是training变成了weighted logistic regression对视频打分。
 
-![img](/blog/images/in-post/post-blog-DNNytbrank.png)
+![img](/images/in-post/post-blog-DNNytbrank.png)
 
 作者的目标是预测期望的观看时长，有点击的是正样本，使用观看时长加权，无点击的为负样本，使用单位权重unit weight (应该是1)。LR 学习到的odds (一个事件的**发生比**（英语：Odds）是该事件发生和不发生的比率)为：
 
